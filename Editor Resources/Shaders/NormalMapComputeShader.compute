@@ -1,0 +1,144 @@
+#pragma kernel GaussianBlur
+#pragma kernel NormalKernel
+#pragma target cs_5_0 // or cs_5_0 for compute shaders
+#pragma multi_compile __ DO_TILING
+#pragma multi_compile __ USE_SCHARR
+
+// Texture inputs and outputs
+Texture2D<float4> InputTexture;
+RWTexture2D<float> TempTexture;
+RWTexture2D<float4> OutputTexture;
+//LUT for color curve
+int Resolution = 256;
+Texture2D<float> CurveLUTTexture;
+
+SamplerState linearClampSampler {
+    Filter = MIN_MAG_MIP_LINEAR;
+    AddressU = TEXTURE_ADDRESS_CLAMP;
+    AddressV = TEXTURE_ADDRESS_CLAMP;
+};
+
+
+// Parameters
+uint _Width;
+uint _Height;
+float _Intensity;
+float _Smoothness;
+
+
+float LUT(float bw){
+    return CurveLUTTexture.SampleLevel(linearClampSampler, float2(bw, 0.0), 0);
+}
+
+float Luminance(float4 color)
+{
+    float bw = dot(color.rgb, float3(0.299f, 0.587f, 0.114f)) * color.a + color.a / 255;
+    return LUT(bw);
+}
+
+
+//Sobel-X Operator = [-1 0 1; -2 0 2; -1 0 1]
+//Sobel-Y Operator = [-1 -2 -1; 0 0 0; 1 2 1]
+
+//Scharr Operator [X-axis] = [-3 0 3; -10 0 10; -3 0 3];
+//Scharr Operator [Y-axis] = [ 3 10 3; 0 0 0; -3 -10 -3];
+
+
+
+//we may want to use both sobel and scharr
+#if USE_SCHARR
+float2 EdgeOperator(float c[3][3]){
+    float gX = -3.0f * c[0][0] +3.0f  * c[0][2]  //-3  0 3
+              -10.0f * c[1][0] +10.0f * c[1][2]  //-10 0 10
+               -3.0f * c[2][0] +3.0f  * c[2][2]; //-3  0 3
+
+    float gY = +3.0f * c[0][0] +10.0f * c[0][1] +3.0f * c[0][2]  //3 10 3
+               -3.0f * c[2][0] -10.0f * c[2][1] -3.0f * c[2][2]; //-3 -10 -3
+    return float2(gX,gY);
+}
+#else
+float2 EdgeOperator(float c[3][3]){
+    float gX =  -1.0f * c[0][0] +1.0f * c[0][2]  //-1 0 1
+                -2.0f * c[1][0] +2.0f * c[1][2]  //-2 0 2
+                -1.0f * c[2][0] +1.0f * c[2][2]; //-1 0 1
+
+    float gY =  -1.0f * c[0][0] -2.0f * c[0][1] -1.0f * c[0][2]  //-1 -2 -1
+                +1.0f * c[2][0] +2.0f * c[2][1] +1.0f * c[2][1]; //1 2 1
+                 
+    return float2(gX,-gY);
+}
+#endif
+
+//this function enables toggleable tiling of the texture
+int2 wrap(int x, int y){
+    #if DO_TILING
+        int wrappedX = (x + _Width) % _Width;
+        int wrappedY = (y + _Height) % _Height;
+        return int2(wrappedX, wrappedY);
+    #else
+        return int2(x, y);
+    #endif
+}
+
+
+[numthreads(8, 8, 1)]
+void GaussianBlur(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= _Width || id.y >= _Height) return;
+
+    // Kernel radius for Gaussian blur
+    int kernelRadius = (int)(3.0 * _Smoothness);
+    float sigmaSq = _Smoothness * _Smoothness;
+
+    // Gaussian smoothing
+    float sum = 0.0;
+    float weightSum = 0.0;
+
+    //if smoothness is 0, then sample as grayscale
+    if(kernelRadius == 0){
+        float4 sample = InputTexture[id.xy];
+        TempTexture[id.xy] = Luminance(sample);
+        return;
+    }
+    
+    for (int x = -kernelRadius; x <= kernelRadius; x++) {
+        for (int y = -kernelRadius; y <= kernelRadius; y++) {
+            float weight = exp(-((x * x + y * y) / (2.0 * sigmaSq)));
+
+            float4 sample = InputTexture[wrap(id.x + x, id.y + y)];
+            sum += Luminance(sample) * weight;
+            weightSum += weight;
+        }
+    }
+
+    float smoothedValue = sum / weightSum;
+
+    // Store the smoothed value in the temporary texture
+    TempTexture[id.xy] = smoothedValue;
+}
+
+[numthreads(8, 8, 1)]
+void NormalKernel(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= _Width || id.y >= _Height) return;
+
+    // operator kernels
+    float c[3][3];
+
+    [unroll]
+    for (int i = 0; i < 3; i++) {
+        [unroll]
+        for (int j = 0; j < 3; j++) {
+            int2 uv = id.xy + int2(j-1, i-1);
+            uv = wrap(uv.x, uv.y);
+            c[i][j] = TempTexture[uv];
+        }
+    }
+    //edge detection operator
+    float2 edge = EdgeOperator(c) * _Intensity;
+    
+    //edges to normal map, x is inverted
+    float3 normal = float3(edge,1);
+    normal = normalize(normal);
+    normal.x *= -1;
+    normal = (normal * 0.5) + 0.5;
+    OutputTexture[id.xy] = float4(normal,1.0);
+}
