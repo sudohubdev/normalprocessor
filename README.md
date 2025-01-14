@@ -1,4 +1,5 @@
 # Normal Map Creator
+![Screenshot 2025-01-12 190801](https://github.com/user-attachments/assets/75c65dc7-e319-4451-b1ab-5d2616f3698b)
 
 This Unity package allows for the creation of normal maps from 2D textures using compute shaders. The package offers various customization options including Smoothness, Intensity, Tiling, and the choice between Scharr and Sobel operators.
 
