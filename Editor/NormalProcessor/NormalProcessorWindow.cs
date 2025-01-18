@@ -1,6 +1,8 @@
 using UnityEditor;
 using UnityEngine;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace dev.sudohub.normalprocessor
 {
@@ -15,15 +17,10 @@ namespace dev.sudohub.normalprocessor
         NormalChanged = 8,
         Everything = KeywordChanged | LUTChanged | GaussChanged | NormalChanged
     }
-    
+
     public class NormalProcessorWindow : EditorWindow, IDisposable
     {
-        private float smoothness = 2;
-        private float intensity = 2;
-        private bool doTiling = false;
-        private bool useScharr = false;
-        private AnimationCurve bwCurve = AnimationCurve.Linear(0, 0, 1, 1);
-
+        private Preset currentPreset = new("Default Preset");
         private Texture2D inputTexture;
         private int previewLayer = 2;
         private readonly string[] previewLayerTxt = new string[] {"Input", "Gauss", "Normal"};
@@ -45,15 +42,28 @@ namespace dev.sudohub.normalprocessor
 
         private void OnGUI()
         {   
+            EditorGUILayout.BeginHorizontal();
             EditorGUI.BeginChangeCheck();
             inputTexture = (Texture2D)EditorGUILayout.ObjectField("Input Texture2D:", inputTexture, typeof(Texture2D), false, GUILayout.ExpandWidth(false));
             if (EditorGUI.EndChangeCheck())
             {
                 //rebind new texture to processor
-                processor.RebindTexture(inputTexture);
+                processor?.RebindTexture(inputTexture);
                 changes |= Changes.Everything;
             }
 
+            //Something like justify-content: space-between XD
+            GUILayout.FlexibleSpace();
+
+            //presets menu
+            if (EditorGUILayout.DropdownButton(new GUIContent("Load Preset"), FocusType.Passive))
+            {
+                ShowPresetMenu();
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            //Help box
             if (inputTexture == null)
             {
                 EditorGUILayout.HelpBox("Please assign a Texture2D first.", MessageType.Info);
@@ -62,7 +72,7 @@ namespace dev.sudohub.normalprocessor
 
             //LUT color curve
             EditorGUI.BeginChangeCheck();
-            bwCurve = EditorGUILayout.CurveField("Grayscale Curve", bwCurve);
+            currentPreset.bwCurve = EditorGUILayout.CurveField("Grayscale Curve", currentPreset.bwCurve);
             if (EditorGUI.EndChangeCheck())
             {
                 changes |= Changes.LUTChanged;
@@ -70,7 +80,7 @@ namespace dev.sudohub.normalprocessor
 
             //Smoothness slider for gaussian blur
             EditorGUI.BeginChangeCheck();
-            smoothness = EditorGUILayout.Slider("Smoothness", smoothness, 0, 10);
+            currentPreset.smoothness = EditorGUILayout.Slider("Smoothness", currentPreset.smoothness, 0, 10);
             if (EditorGUI.EndChangeCheck())
             {
                 changes |= Changes.GaussChanged;
@@ -78,7 +88,7 @@ namespace dev.sudohub.normalprocessor
 
             //Intensity slider for normal map generation
             EditorGUI.BeginChangeCheck();
-            intensity = EditorGUILayout.Slider("Intensity", intensity, 0, 10);
+            currentPreset.intensity = EditorGUILayout.Slider("Intensity", currentPreset.intensity, 0, 10);
             if (EditorGUI.EndChangeCheck())
             {
                 changes |= Changes.NormalChanged;
@@ -86,7 +96,7 @@ namespace dev.sudohub.normalprocessor
 
             //tiling checkbox
             EditorGUI.BeginChangeCheck();
-            doTiling = EditorGUILayout.Toggle("Do Tiling", doTiling);
+            currentPreset.doTiling = EditorGUILayout.Toggle("Do Tiling", currentPreset.doTiling);
             if (EditorGUI.EndChangeCheck())
             {
                 changes |= Changes.KeywordChanged;
@@ -94,7 +104,7 @@ namespace dev.sudohub.normalprocessor
 
             //Scharr operator checkbox
             EditorGUI.BeginChangeCheck();
-            useScharr = EditorGUILayout.Toggle("Use Scharr Operator", useScharr);
+            currentPreset.useScharr = EditorGUILayout.Toggle("Use Scharr Operator", currentPreset.useScharr);
             if (EditorGUI.EndChangeCheck())
             {
                 changes |= Changes.KeywordChanged;
@@ -114,17 +124,22 @@ namespace dev.sudohub.normalprocessor
                 // Original asset path
                 string assetPath = AssetDatabase.GetAssetPath(inputTexture);
 
+                //save preset name
+                currentPreset.name = System.IO.Path.GetFileName(assetPath);
+
                 // Save the normal map
                 var path = EditorUtility.SaveFilePanel(
                     "Save Normal Map PNG",
                     System.IO.Path.GetDirectoryName(assetPath),
-                    System.IO.Path.GetFileName(assetPath).Replace(".png", "_Normal.png"),
+                    currentPreset.name.Replace(".png", "_Normal.png"),
                     "png");
 
                 if (path.Length != 0)
                 {
                     System.IO.File.WriteAllBytes(path, normalMap.EncodeToPNG());
                     AssetDatabase.Refresh();
+                    //save preset
+                    PresetData.instance.Add(currentPreset);
                 }
             }
 
@@ -134,20 +149,20 @@ namespace dev.sudohub.normalprocessor
 
             //Recompute changed values
             if(changes.HasFlag(Changes.KeywordChanged)){
-                processor.UpdateKeywords(doTiling, useScharr);
+                processor.UpdateKeywords(currentPreset.doTiling, currentPreset.useScharr);
                 //cascade the change to everything else.
                 changes = Changes.Everything;
             }
             if(changes.HasFlag(Changes.LUTChanged)){
-                processor.ComputeLUT(bwCurve);
+                processor.ComputeLUT(currentPreset.bwCurve);
                 changes = Changes.Everything;
             }
             if(changes.HasFlag(Changes.GaussChanged)){
-                processor.ComputeGauss(smoothness);
+                processor.ComputeGauss(currentPreset.smoothness);
                 changes = Changes.Everything;
             }
             if(changes.HasFlag(Changes.NormalChanged)){
-                processor.ComputeNormal(intensity);
+                processor.ComputeNormal(currentPreset.intensity);
             }
             //Up to date
             changes = Changes.None;
@@ -158,6 +173,28 @@ namespace dev.sudohub.normalprocessor
                 2 => processor.OutputTexture,
                 _ => processor.InputTexture
             };
+        }
+
+        private void ShowPresetMenu()
+        {
+            // Create the dropdown menu
+            GenericMenu menu = new GenericMenu();
+
+            // Add preset options
+            foreach(var preset in PresetData.instance){
+                menu.AddItem(new GUIContent(preset.name), false, () => LoadPreset(preset));
+            }
+            menu.AddItem(new GUIContent("-----CLEAR ALL-----"), false, () => PresetData.instance.Clear());
+
+            // Display the menu
+            menu.ShowAsContext();
+        }
+
+        private void LoadPreset(Preset preset)
+        {
+            PresetData.instance.Select(preset);
+            currentPreset = preset;
+            changes |= Changes.Everything;
         }
 
         public void Dispose()
