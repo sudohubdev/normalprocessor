@@ -1,11 +1,13 @@
 {
   "name": "dev.sudohub.normalprocessor",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "displayName": "Normal Processor",
   "description": "This package contains Editor tools for Normal Map creation.",
   "unity": "2022.3",
   "unityRelease": "53f1",
-  "documentationUrl": "https://github.com/sudohubdev/normalprocessor/blob/main/README.md",
+  "documentationUrl": "https://github.com/sudohubdev/normalprocessor/blob/main/HELP.md",
+  "changelogUrl": "https://github.com/sudohubdev/normalprocessor/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/sudohubdev/normalprocessor/blob/main/LICENSE",
   "license": "MIT",
   "hideInEditor": true,
   "keywords": [
