@@ -125,13 +125,13 @@ namespace dev.sudohub.normalprocessor
                 string assetPath = AssetDatabase.GetAssetPath(inputTexture);
 
                 //save preset name
-                currentPreset.name = System.IO.Path.GetFileName(assetPath);
+                currentPreset.name = System.IO.Path.GetFileNameWithoutExtension(assetPath);
 
                 // Save the normal map
                 var path = EditorUtility.SaveFilePanel(
                     "Save Normal Map PNG",
                     System.IO.Path.GetDirectoryName(assetPath),
-                    currentPreset.name.Replace(".png", "_Normal.png"),
+                    currentPreset.name + "_Normal.png",
                     "png");
 
                 if (path.Length != 0)

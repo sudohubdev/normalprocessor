@@ -22,6 +22,7 @@ SamplerState linearClampSampler {
 // Parameters
 uint _Width;
 uint _Height;
+uint2 _Offset; //for block processing (atlas)
 float _Intensity;
 float _Smoothness;
 
@@ -42,7 +43,6 @@ float Luminance(float4 color)
 
 //Scharr Operator [X-axis] = [-3 0 3; -10 0 10; -3 0 3];
 //Scharr Operator [Y-axis] = [ 3 10 3; 0 0 0; -3 -10 -3];
-
 
 
 //we may want to use both sobel and scharr
@@ -72,13 +72,14 @@ float2 EdgeOperator(float c[3][3]){
 //this function enables toggleable tiling of the texture
 int2 wrap(int x, int y){
     #if DO_TILING
-        int wrappedX = (x + _Width) % _Width;
+        int wrappedX = (x +  _Width) % _Width; //repeat
         int wrappedY = (y + _Height) % _Height;
         return int2(wrappedX, wrappedY);
     #else
-        return int2(x, y);
+        return int2(clamp(x, 0, _Width - 1), clamp(y, 0, _Height - 1)); //subtract 1 to get ranges like 0-255, 256-1023
     #endif
 }
+
 
 
 [numthreads(8, 8, 1)]
@@ -95,8 +96,8 @@ void GaussianBlur(uint3 id : SV_DispatchThreadID) {
 
     //if smoothness is 0, then sample as grayscale
     if(kernelRadius == 0){
-        float4 sample = InputTexture[id.xy];
-        TempTexture[id.xy] = Luminance(sample);
+        float4 sample = InputTexture[id.xy + _Offset];
+        TempTexture[id.xy + _Offset] = Luminance(sample);
         return;
     }
     
@@ -104,7 +105,7 @@ void GaussianBlur(uint3 id : SV_DispatchThreadID) {
         for (int y = -kernelRadius; y <= kernelRadius; y++) {
             float weight = exp(-((x * x + y * y) / (2.0 * sigmaSq)));
 
-            float4 sample = InputTexture[wrap(id.x + x, id.y + y)];
+            float4 sample = InputTexture[wrap(id.x + x, id.y + y) + _Offset];
             sum += Luminance(sample) * weight;
             weightSum += weight;
         }
@@ -113,13 +114,13 @@ void GaussianBlur(uint3 id : SV_DispatchThreadID) {
     float smoothedValue = sum / weightSum;
 
     // Store the smoothed value in the temporary texture
-    TempTexture[id.xy] = smoothedValue;
+    TempTexture[id.xy + _Offset] = smoothedValue;
 }
 
 [numthreads(8, 8, 1)]
 void NormalKernel(uint3 id : SV_DispatchThreadID) {
     if (id.x >= _Width || id.y >= _Height) return;
-
+    //_Offset.y -=1;
     // operator kernels
     float c[3][3];
 
@@ -128,7 +129,7 @@ void NormalKernel(uint3 id : SV_DispatchThreadID) {
         [unroll]
         for (int j = 0; j < 3; j++) {
             int2 uv = id.xy + int2(j-1, i-1);
-            uv = wrap(uv.x, uv.y);
+            uv = wrap(uv.x, uv.y) + _Offset;
             c[i][j] = TempTexture[uv];
         }
     }
@@ -140,5 +141,5 @@ void NormalKernel(uint3 id : SV_DispatchThreadID) {
     normal = normalize(normal);
     normal.x *= -1;
     normal = (normal * 0.5) + 0.5;
-    OutputTexture[id.xy] = float4(normal,1.0);
+    OutputTexture[id.xy + _Offset] = float4(normal,1.0);
 }

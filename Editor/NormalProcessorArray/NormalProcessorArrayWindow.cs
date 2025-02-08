@@ -5,7 +5,7 @@ using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 using System.ComponentModel;
 
-namespace ev.sudohub.normalprocessor
+namespace dev.sudohub.normalprocessor
 {
     public class NormalProcessorArrayWindow : EditorWindow, IDisposable
     {
@@ -571,13 +571,13 @@ namespace ev.sudohub.normalprocessor
             var assetPath = AssetDatabase.GetAssetPath(state.InputTexture);
 
             //save preset name
-            state.CurrentPreset.name = System.IO.Path.GetFileName(assetPath);
+            state.CurrentPreset.name = System.IO.Path.GetFileNameWithoutExtension(assetPath);
 
             // Save the normal map
             var path = EditorUtility.SaveFilePanel(
                 "Save Normal Map Atlas PNG",
                 System.IO.Path.GetDirectoryName(assetPath),
-                state.CurrentPreset.name.Replace(".png", "_Normal.png"),
+                state.CurrentPreset.name + "_Normal.png",
                 "png");
 
             if (path.Length != 0)
