@@ -36,7 +36,8 @@ Install a package from Git URL `https://github.com/sudohubdev/normalprocessor.gi
 - **Use Scharr Operator**: If enabled, uses the Scharr operator for edge detection; otherwise, uses the Sobel operator. Try both and pick a better one for your needs.
 
 ## TODOs
-- Add support for texture atlases (It can do it now, but only if sprites have spacing. Otherwise it'll have ugly edges)
+- ~~Add support for texture atlases~~
+- Add support for Sprite texture atlases with different sizes and offsets
 - Add support for Texture2DArray 
 
 ## Licensing

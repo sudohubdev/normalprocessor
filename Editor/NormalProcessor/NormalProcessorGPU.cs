@@ -18,17 +18,35 @@ namespace dev.sudohub.normalprocessor
         private static readonly int resolution = 256;
         private Texture2D curveLUT = new(resolution, 1, TextureFormat.RFloat, false, true);
 
-        public NormalProcessorGPU(Texture2D tex)
+        //partial texture edit (for tiles)
+        private Vector2Int tileSize = Vector2Int.one; //scale factor
+        private Vector2Int tileOffset = Vector2Int.zero; //no offsset by default
+
+
+        public NormalProcessorGPU()
         {
+
             computeShader = AssetDatabase.LoadAssetAtPath<ComputeShader>("Packages/dev.sudohub.normalprocessor/Editor Resources/Shaders/NormalMapComputeShader.compute");
-            InputTexture = tex;
-            GenTextures();
+            //computeShader = (ComputeShader)Resources.Load("NormalMapComputeShader");
+
+            if (computeShader == null)
+            {
+                Debug.LogError("[Normal Processor] Failed to load Normal Processor Shader. Check the package integrity!");
+                return;
+            }
+        }
+
+        public NormalProcessorGPU(Texture2D tex) : this()
+        {
+            this.RebindTexture(tex);
         }
 
         public void RebindTexture(Texture2D tex)
         {
+            if (tex == null) return;
+
             //check dimensions
-            if (InputTexture.width != tex.width || InputTexture.height != tex.height)
+            if (InputTexture == null || InputTexture.width != tex.width || InputTexture.height != tex.height)
             {
                 InputTexture = tex;
                 Dispose();
@@ -54,6 +72,12 @@ namespace dev.sudohub.normalprocessor
                 enableRandomWrite = true
             };
             OutputTexture.Create();
+        }
+
+        public void SetTiling(Vector2Int size, Vector2Int offset)
+        {
+            tileSize = size;
+            tileOffset = offset;
         }
 
         public void UpdateKeywords(bool doTiling, bool useScharr)
@@ -86,13 +110,17 @@ namespace dev.sudohub.normalprocessor
             int gaussian = computeShader.FindKernel("GaussianBlur");
 
             // Set shader parameters
-            computeShader.SetInt("_Width", InputTexture.width);
-            computeShader.SetInt("_Height", InputTexture.height);
+            int blockWidth = InputTexture.width / tileSize.x;
+            int blockHeight = InputTexture.height / tileSize.y;
+            computeShader.SetInt("_Width", blockWidth);
+            computeShader.SetInt("_Height", blockHeight);
+            computeShader.SetInts("_Offset", blockWidth * tileOffset.x,
+                                             blockHeight * (tileSize.y - 1 - tileOffset.y));
             computeShader.SetFloat("_Smoothness", smoothness);
 
             // Execute the compute shader
-            int threadGroupsX = Mathf.CeilToInt(InputTexture.width / 8.0f);
-            int threadGroupsY = Mathf.CeilToInt(InputTexture.height / 8.0f);
+            int threadGroupsX = Mathf.CeilToInt(blockWidth / 8.0f);
+            int threadGroupsY = Mathf.CeilToInt(blockHeight / 8.0f);
 
             computeShader.SetTexture(gaussian, "InputTexture", InputTexture);
             computeShader.SetTexture(gaussian, "TempTexture", TempTexture);
@@ -105,13 +133,19 @@ namespace dev.sudohub.normalprocessor
         public void ComputeNormal(float intensity)
         {
             int sobel = computeShader.FindKernel("NormalKernel");
-            computeShader.SetInt("_Width", InputTexture.width);
-            computeShader.SetInt("_Height", InputTexture.height);
+
+            // Set shader parameters
+            int blockWidth = InputTexture.width / tileSize.x;
+            int blockHeight = InputTexture.height / tileSize.y;
+            computeShader.SetInt("_Width", blockWidth);
+            computeShader.SetInt("_Height", blockHeight);
+            computeShader.SetInts("_Offset", blockWidth * tileOffset.x,
+                                             blockHeight * (tileSize.y - 1 - tileOffset.y));
             computeShader.SetFloat("_Intensity", intensity);
 
             // Execute the compute shader
-            int threadGroupsX = Mathf.CeilToInt(InputTexture.width / 8.0f);
-            int threadGroupsY = Mathf.CeilToInt(InputTexture.height / 8.0f);
+            int threadGroupsX = Mathf.CeilToInt(blockWidth / 8.0f);
+            int threadGroupsY = Mathf.CeilToInt(blockHeight / 8.0f);
 
             computeShader.SetTexture(sobel, "InputTexture", InputTexture);
             computeShader.SetTexture(sobel, "TempTexture", TempTexture);
