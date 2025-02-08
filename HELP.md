@@ -1,5 +1,5 @@
 # Normal Processor
-![Screenshot 2025-01-12 190801](https://github.com/user-attachments/assets/75c65dc7-e319-4451-b1ab-5d2616f3698b)
+![Normal Processor Screenshot](https://github.com/user-attachments/assets/75c65dc7-e319-4451-b1ab-5d2616f3698b)
 
 ## Usage
 1. Right click the Texture2D asset
@@ -22,8 +22,7 @@
 
 
 # Normal Processor (Atlas)
-
-TODO: Screenshot
+![Normal Processor (Atlas) Screenshot](https://github.com/user-attachments/assets/18277ad1-aaf3-4a90-85e7-ad21a29fbdaf)
 
 # **Usage**
 1. **Right-click** a `Texture2D` asset in the Unity Editor.
