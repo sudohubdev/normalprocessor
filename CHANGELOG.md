@@ -1,5 +1,8 @@
 # Changelogs
 
+## V 1.1.1
+- Fixed signed/unsigned bug in shader computation
+
 ## V 1.1.0
 - Added Normal Processor (Atlas)
 - Updated Compute Shader to sample texture parts

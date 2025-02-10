@@ -20,8 +20,8 @@ SamplerState linearClampSampler {
 
 
 // Parameters
-uint _Width;
-uint _Height;
+int _Width;
+int _Height;
 uint2 _Offset; //for block processing (atlas)
 float _Intensity;
 float _Smoothness;
@@ -84,7 +84,7 @@ int2 wrap(int x, int y){
 
 [numthreads(8, 8, 1)]
 void GaussianBlur(uint3 id : SV_DispatchThreadID) {
-    if (id.x >= _Width || id.y >= _Height) return;
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
 
     // Kernel radius for Gaussian blur
     int kernelRadius = (int)(3.0 * _Smoothness);
@@ -119,7 +119,7 @@ void GaussianBlur(uint3 id : SV_DispatchThreadID) {
 
 [numthreads(8, 8, 1)]
 void NormalKernel(uint3 id : SV_DispatchThreadID) {
-    if (id.x >= _Width || id.y >= _Height) return;
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
     //_Offset.y -=1;
     // operator kernels
     float c[3][3];
