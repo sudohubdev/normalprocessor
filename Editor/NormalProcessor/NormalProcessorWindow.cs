@@ -177,6 +177,38 @@ namespace dev.sudohub.normalprocessor
             optionsGroup.Add(scharrToggle);
             container.Add(optionsGroup);
 
+            // --- Existing Normal Processing ---
+            var existingNormalGroup = new Foldout() { text = "Process Existing Normal Map", value = currentPreset.processExistingNormal };
+            var existingNormalToggle = existingNormalGroup.Q<Toggle>();
+            if (existingNormalToggle != null) {
+                existingNormalToggle.tooltip = "Enable this if the input texture is ALREADY a normal map and you just want to convert its format.";
+            }
+            existingNormalGroup.RegisterValueChangedCallback(evt => {
+                if (evt.target == existingNormalGroup) {
+                    currentPreset.processExistingNormal = evt.newValue;
+                    changes = Changes.Everything;
+                    UpdatePreview();
+                }
+            });
+            
+            var flipGreenToggle = new Toggle("Flip Green Channel (Y)") { value = currentPreset.flipGreenChannel, tooltip = "Flips the Y channel to convert between DirectX and OpenGL normal map formats." };
+            flipGreenToggle.RegisterValueChangedCallback(evt => {
+                currentPreset.flipGreenChannel = evt.newValue;
+                changes |= Changes.NormalChanged;
+                UpdatePreview();
+            });
+            existingNormalGroup.Add(flipGreenToggle);
+            
+            var rebuildZToggle = new Toggle("Rebuild Blue Channel (Z)") { value = currentPreset.rebuildZChannel, tooltip = "Reconstructs the Z channel based on X and Y to fix missing blue channels." };
+            rebuildZToggle.RegisterValueChangedCallback(evt => {
+                currentPreset.rebuildZChannel = evt.newValue;
+                changes |= Changes.NormalChanged;
+                UpdatePreview();
+            });
+            existingNormalGroup.Add(rebuildZToggle);
+            
+            container.Add(existingNormalGroup);
+
             // Flexible space
             var spacer = new VisualElement() { style = { flexGrow = 1, minHeight = 20, flexShrink = 1 } };
             container.Add(spacer);
@@ -248,20 +280,30 @@ namespace dev.sudohub.normalprocessor
             processor ??= new NormalProcessorGPU(inputTexture);
 
             //Recompute changed values
-            if(changes.HasFlag(Changes.KeywordChanged)){
-                processor.UpdateKeywords(currentPreset.doTiling, currentPreset.useScharr);
-                changes = Changes.Everything;
+            if (currentPreset.processExistingNormal)
+            {
+                if (changes.HasFlag(Changes.NormalChanged))
+                {
+                    processor.ProcessExistingNormalMap(currentPreset.intensity, currentPreset.flipGreenChannel, currentPreset.rebuildZChannel);
+                }
             }
-            if(changes.HasFlag(Changes.LUTChanged)){
-                processor.ComputeLUT(currentPreset.bwCurve);
-                changes = Changes.Everything;
-            }
-            if(changes.HasFlag(Changes.GaussChanged)){
-                processor.ComputeGauss(currentPreset.smoothness);
-                changes = Changes.Everything;
-            }
-            if(changes.HasFlag(Changes.NormalChanged)){
-                processor.ComputeNormal(currentPreset.intensity, currentPreset.detailIntensity, currentPreset.invertHeight);
+            else
+            {
+                if(changes.HasFlag(Changes.KeywordChanged)){
+                    processor.UpdateKeywords(currentPreset.doTiling, currentPreset.useScharr);
+                    changes = Changes.Everything;
+                }
+                if(changes.HasFlag(Changes.LUTChanged)){
+                    processor.ComputeLUT(currentPreset.bwCurve);
+                    changes = Changes.Everything;
+                }
+                if(changes.HasFlag(Changes.GaussChanged)){
+                    processor.ComputeGauss(currentPreset.smoothness);
+                    changes = Changes.Everything;
+                }
+                if(changes.HasFlag(Changes.NormalChanged)){
+                    processor.ComputeNormal(currentPreset.intensity, currentPreset.detailIntensity, currentPreset.invertHeight);
+                }
             }
             
             changes = Changes.None;

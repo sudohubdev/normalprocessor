@@ -1,6 +1,7 @@
 #pragma kernel GaussianBlurHorizontal
 #pragma kernel GaussianBlurVertical
 #pragma kernel NormalKernel
+#pragma kernel ProcessExistingNormal
 #pragma target cs_5_0 // or cs_5_0 for compute shaders
 #pragma multi_compile __ DO_TILING
 #pragma multi_compile __ USE_SCHARR
@@ -29,6 +30,8 @@ float _Intensity;
 float _Smoothness;
 float _InvertHeight; // 1.0 or -1.0
 float _DetailIntensity;
+float _FlipGreen;
+float _RebuildZ;
 
 
 float LUT(float bw){
@@ -172,3 +175,33 @@ void NormalKernel(uint3 id : SV_DispatchThreadID) {
     normal = (normal * 0.5) + 0.5;
     OutputTexture[id.xy + _Offset] = float4(normal, 1.0);
 }
+[numthreads(8, 8, 1)]
+void ProcessExistingNormal(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
+
+    int2 uv = wrap(id.x, id.y) + _Offset;
+    float4 color = InputTexture[uv];
+    
+    // unpack normal
+    float3 normal = color.rgb * 2.0 - 1.0;
+    
+    // apply intensity
+    normal.xy *= _Intensity;
+    
+    // flip green
+    if (_FlipGreen > 0.5) {
+        normal.y *= -1.0;
+    }
+    
+    // rebuild z
+    if (_RebuildZ > 0.5) {
+        normal.z = sqrt(saturate(1.0 - dot(normal.xy, normal.xy)));
+    }
+    
+    normal = normalize(normal);
+    
+    // pack normal
+    normal = normal * 0.5 + 0.5;
+    OutputTexture[id.xy + _Offset] = float4(normal, color.a);
+}
+

@@ -13,6 +13,9 @@ namespace dev.sudohub.normalprocessor
         public float intensity;
         public float detailIntensity;
         public bool invertHeight;
+        public bool processExistingNormal;
+        public bool flipGreenChannel;
+        public bool rebuildZChannel;
         public bool doTiling;
         public bool useScharr;
         public string name;
@@ -22,6 +25,9 @@ namespace dev.sudohub.normalprocessor
             intensity = 2;
             detailIntensity = 0;
             invertHeight = false;
+            processExistingNormal = false;
+            flipGreenChannel = false;
+            rebuildZChannel = false;
             doTiling = false;
             useScharr = false;
             name = presetname;

@@ -422,13 +422,58 @@ namespace dev.sudohub.normalprocessor
                 state.Changes |= Changes.Everything;
             };
 
+            // Horizontal Line Generator
+            System.Func<VisualElement> HLine = () => new VisualElement() { style = { height = 1, backgroundColor = new Color(1, 1, 1, 0.1f), marginTop = 8, marginBottom = 8 } };
+
             paramsContainer.Add(curveField);
+            
+            paramsContainer.Add(HLine());
             paramsContainer.Add(smoothnessSlider);
             paramsContainer.Add(intensitySlider);
             paramsContainer.Add(detailIntensitySlider);
+            
+            paramsContainer.Add(HLine());
             paramsContainer.Add(invertToggle);
             paramsContainer.Add(tilingToggle);
             paramsContainer.Add(scharrToggle);
+            
+            // --- Existing Normal Processing ---
+            var existingNormalGroup = new Foldout() { text = "Process Existing Normal", value = state.CurrentPreset.processExistingNormal };
+            // Apply tooltip only to the label/toggle part, not the whole stretching container
+            var existingNormalToggle = existingNormalGroup.Q<Toggle>();
+            if (existingNormalToggle != null) {
+                existingNormalToggle.tooltip = "Enable this if the input texture is ALREADY a normal map and you just want to convert its format.";
+            }
+            existingNormalGroup.RegisterValueChangedCallback(evt => {
+                if (evt.target == existingNormalGroup) {
+                    state.CurrentPreset.processExistingNormal = evt.newValue;
+                    state.Changes |= Changes.Everything;
+                }
+            });
+            
+            var flipGreenToggle = new Toggle("Flip Green Channel (Y)") { value = state.CurrentPreset.flipGreenChannel, tooltip = "Flips the Y channel to convert between DirectX and OpenGL normal map formats." };
+            flipGreenToggle.RegisterValueChangedCallback(evt => {
+                state.CurrentPreset.flipGreenChannel = evt.newValue;
+                state.Changes |= Changes.NormalChanged;
+            });
+            existingNormalGroup.Add(flipGreenToggle);
+            
+            var rebuildZToggle = new Toggle("Rebuild Blue Channel (Z)") { value = state.CurrentPreset.rebuildZChannel, tooltip = "Reconstructs the Z channel based on X and Y to fix missing blue channels." };
+            rebuildZToggle.RegisterValueChangedCallback(evt => {
+                state.CurrentPreset.rebuildZChannel = evt.newValue;
+                state.Changes |= Changes.NormalChanged;
+            });
+            existingNormalGroup.Add(rebuildZToggle);
+            
+            state.PropertyChanged += (s, e) =>
+            {
+                existingNormalGroup.SetValueWithoutNotify(state.CurrentPreset.processExistingNormal);
+                flipGreenToggle.SetValueWithoutNotify(state.CurrentPreset.flipGreenChannel);
+                rebuildZToggle.SetValueWithoutNotify(state.CurrentPreset.rebuildZChannel);
+            };
+            
+            paramsContainer.Add(HLine());
+            paramsContainer.Add(existingNormalGroup);
 
             container.Add(paramsContainer);
         }
@@ -585,27 +630,38 @@ namespace dev.sudohub.normalprocessor
 
         private void Compute(Changes changes, bool doResetFlag = true)
         {
-            //Recompute for changed values
-            if (changes.HasFlag(Changes.KeywordChanged))
+            if (state.CurrentPreset.processExistingNormal)
             {
-                _processor.Value.UpdateKeywords(state.CurrentPreset.doTiling, state.CurrentPreset.useScharr);
-                //cascade the change to everything else.
-                changes = Changes.Everything;
+                if (changes.HasFlag(Changes.NormalChanged))
+                {
+                    _processor.Value.ProcessExistingNormalMap(state.CurrentPreset.intensity, state.CurrentPreset.flipGreenChannel, state.CurrentPreset.rebuildZChannel);
+                }
             }
-            if (changes.HasFlag(Changes.LUTChanged))
+            else
             {
-                _processor.Value.ComputeLUT(state.CurrentPreset.bwCurve);
-                changes = Changes.Everything;
+                //Recompute for changed values
+                if (changes.HasFlag(Changes.KeywordChanged))
+                {
+                    _processor.Value.UpdateKeywords(state.CurrentPreset.doTiling, state.CurrentPreset.useScharr);
+                    //cascade the change to everything else.
+                    changes = Changes.Everything;
+                }
+                if (changes.HasFlag(Changes.LUTChanged))
+                {
+                    _processor.Value.ComputeLUT(state.CurrentPreset.bwCurve);
+                    changes = Changes.Everything;
+                }
+                if (changes.HasFlag(Changes.GaussChanged))
+                {
+                    _processor.Value.ComputeGauss(state.CurrentPreset.smoothness);
+                    changes = Changes.Everything;
+                }
+                if (changes.HasFlag(Changes.NormalChanged))
+                {
+                    _processor.Value.ComputeNormal(state.CurrentPreset.intensity, state.CurrentPreset.detailIntensity, state.CurrentPreset.invertHeight);
+                }
             }
-            if (changes.HasFlag(Changes.GaussChanged))
-            {
-                _processor.Value.ComputeGauss(state.CurrentPreset.smoothness);
-                changes = Changes.Everything;
-            }
-            if (changes.HasFlag(Changes.NormalChanged))
-            {
-                _processor.Value.ComputeNormal(state.CurrentPreset.intensity, state.CurrentPreset.detailIntensity, state.CurrentPreset.invertHeight);
-            }
+            
             //Up to date
             if (doResetFlag)
                 state.Changes = Changes.None;

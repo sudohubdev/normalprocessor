@@ -210,5 +210,24 @@ namespace dev.sudohub.normalprocessor
                 curveLUT = null;
             }
         }
+        public void ProcessExistingNormalMap(float intensity, bool flipGreen, bool rebuildZ)
+        {
+            int kernel = computeShader.FindKernel("ProcessExistingNormal");
+            int blockWidth = InputTexture.width / tileSize.x;
+            int blockHeight = InputTexture.height / tileSize.y;
+            computeShader.SetInt("_Width", blockWidth);
+            computeShader.SetInt("_Height", blockHeight);
+            computeShader.SetInts("_Offset", blockWidth * tileOffset.x, blockHeight * (tileSize.y - 1 - tileOffset.y));
+            computeShader.SetFloat("_Intensity", intensity);
+            computeShader.SetFloat("_FlipGreen", flipGreen ? 1.0f : 0.0f);
+            computeShader.SetFloat("_RebuildZ", rebuildZ ? 1.0f : 0.0f);
+            
+            int threadGroupsX = Mathf.CeilToInt(blockWidth / 8.0f);
+            int threadGroupsY = Mathf.CeilToInt(blockHeight / 8.0f);
+            computeShader.SetTexture(kernel, "InputTexture", InputTexture);
+            computeShader.SetTexture(kernel, "OutputTexture", OutputTexture);
+            computeShader.Dispatch(kernel, threadGroupsX, threadGroupsY, 1);
+        }
     }
 }
+
