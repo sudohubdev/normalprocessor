@@ -1,0 +1,16 @@
+{
+    "name": "dev.sudohub.normalprocessor.Editor",
+    "rootNamespace": "dev.sudohub.normalprocessor",
+    "references": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

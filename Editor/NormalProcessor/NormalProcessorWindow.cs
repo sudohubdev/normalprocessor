@@ -20,7 +20,7 @@ namespace dev.sudohub.normalprocessor
         Everything = KeywordChanged | LUTChanged | GaussChanged | NormalChanged
     }
 
-    public class NormalProcessorWindow : EditorWindow, IDisposable
+    public class NormalProcessorWindow : EditorWindow
     {
         private Preset currentPreset = new("Default Preset");
         private Texture2D inputTexture;
@@ -299,11 +299,15 @@ namespace dev.sudohub.normalprocessor
                 AssetDatabase.Refresh();
                 PresetData.instance.Add(currentPreset);
             }
+            
+            // Clean up the CPU texture to prevent memory leaks!
+            DestroyImmediate(normalMap);
         }
 
-        public void Dispose()
+        private void OnDisable()
         {
             processor?.Dispose();
+            processor = null;
         }
     }
 }

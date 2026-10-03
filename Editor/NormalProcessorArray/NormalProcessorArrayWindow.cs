@@ -7,7 +7,7 @@ using System.ComponentModel;
 
 namespace dev.sudohub.normalprocessor
 {
-    public class NormalProcessorArrayWindow : EditorWindow, IDisposable
+    public class NormalProcessorArrayWindow : EditorWindow
     {
         private NormalProcessorArrayState state = new(new Vector2Int(8, 8));
         private GridState gridState = new();
@@ -617,12 +617,17 @@ namespace dev.sudohub.normalprocessor
                 //save preset
                 state.SavePresetInfo();
             }
+            
+            // Clean up the CPU texture to prevent memory leaks
+            DestroyImmediate(normalMap);
         }
         #endregion
 
-        public void Dispose()
+        private void OnDisable()
         {
-            _processor.Value?.Dispose();
+            if (_processor != null && _processor.IsValueCreated) {
+                _processor.Value.Dispose();
+            }
         }
         #endregion
     }
