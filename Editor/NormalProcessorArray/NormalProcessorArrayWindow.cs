@@ -139,7 +139,17 @@ namespace dev.sudohub.normalprocessor
             container.Add(new VisualElement() { style = { flexGrow = 1 } });
 
             //save button
-            var saveBtn = new Button(SaveNormalMap) { text = "Save", style = { flexDirection = FlexDirection.Row } };
+            var saveBtn = new Button(SaveNormalMap) { text = "Generate & Save Atlas", tooltip = "Process and save as PNG" };
+            saveBtn.style.height = 36;
+            saveBtn.style.backgroundColor = new Color(0.13f, 0.59f, 0.95f, 1f); // Unity Blue Accent
+            saveBtn.style.color = Color.white;
+            saveBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
+            saveBtn.style.fontSize = 14;
+            saveBtn.style.borderTopLeftRadius = 4;
+            saveBtn.style.borderTopRightRadius = 4;
+            saveBtn.style.borderBottomLeftRadius = 4;
+            saveBtn.style.borderBottomRightRadius = 4;
+            saveBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_SaveAs").image, style = { position = Position.Absolute, left = 10, top = 10, width = 16, height = 16 } });
             container.Add(saveBtn);
 
             UpdateGrid();
