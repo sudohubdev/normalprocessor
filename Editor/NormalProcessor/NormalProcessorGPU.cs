@@ -255,7 +255,7 @@ namespace dev.sudohub.normalprocessor
             public Vector4 color;    // r,g,b, a (intensity)
         }
 
-        public void ComputeLighting(LightData[] lights)
+        public void ComputeLighting(LightData[] lights, Color backgroundColor = default)
         {
             if (lightCompute == null || LitTexture == null) return;
             
@@ -264,6 +264,8 @@ namespace dev.sudohub.normalprocessor
             int blockHeight = InputTexture.height / tileSize.y;
             lightCompute.SetInt("_Width", blockWidth);
             lightCompute.SetInt("_Height", blockHeight);
+            lightCompute.SetInts("_Offset", blockWidth * tileOffset.x, blockHeight * (tileSize.y - 1 - tileOffset.y));
+            lightCompute.SetVector("_BackgroundColor", backgroundColor);
             
             lightCompute.SetInt("_LightCount", lights.Length);
             

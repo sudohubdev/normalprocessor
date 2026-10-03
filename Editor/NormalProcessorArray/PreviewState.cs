@@ -45,6 +45,14 @@ namespace dev.sudohub.normalprocessor
             BackgroudType.Gray => Texture2D.grayTexture,
             _ => Texture2D.whiteTexture
         };
+
+        public Color BackgroundColor => Background switch
+        {
+            BackgroudType.Black => Color.black,
+            BackgroudType.Gray => Color.gray,
+            BackgroudType.White => Color.white,
+            _ => Color.clear
+        };
         public Texture GetTexture(NormalProcessorGPU processor) => _textureType switch
         {
             TextureType.Input or TextureType.InputFull => processor.InputTexture,

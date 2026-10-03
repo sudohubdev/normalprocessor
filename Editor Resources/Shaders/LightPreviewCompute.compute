@@ -8,6 +8,8 @@ RWTexture2D<float4> OutputTexture;
 
 int _Width;
 int _Height;
+int2 _Offset;
+float4 _BackgroundColor;
 
 int _LightCount;
 float4 _LightPositions[16]; // x, y (0..1), z (height), w (radius)
@@ -22,7 +24,7 @@ float3 DecodeNormal(float4 n) {
 void LightingPass(uint3 id : SV_DispatchThreadID) {
     if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
 
-    int2 uv = id.xy;
+    int2 uv = id.xy + _Offset;
     float4 albedo = _UseAlbedo > 0.5 ? AlbedoTexture[uv] : float4(0.5, 0.5, 0.5, 1.0);
     float3 normal = DecodeNormal(NormalTexture[uv]);
 
@@ -60,6 +62,7 @@ void LightingPass(uint3 id : SV_DispatchThreadID) {
         finalColor += lCol.rgb * lCol.a * spec * attenuation * 0.5;
     }
 
-    OutputTexture[id.xy] = float4(saturate(finalColor), 1.0);
+    float3 blendedColor = lerp(_BackgroundColor.rgb, saturate(finalColor), albedo.a);
+    OutputTexture[uv] = float4(blendedColor, 1.0);
 }
 

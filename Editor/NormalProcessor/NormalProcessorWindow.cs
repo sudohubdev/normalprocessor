@@ -25,6 +25,7 @@ namespace dev.sudohub.normalprocessor
         private Preset currentPreset = new("Default Preset");
         private Texture2D inputTexture;
         private int previewLayer = 2; // 0=Input, 1=Gauss, 2=Normal, 3=Lighting
+        private int previewBackground = 0; // 0=Clear, 1=Black, 2=Gray, 3=White
         private System.Collections.Generic.List<NormalProcessorGPU.LightData> previewLights = new() { new NormalProcessorGPU.LightData { position = new Vector4(0.5f, 0.5f, 0.5f, 1.5f), color = new Vector4(1f, 1f, 1f, 2f) } };
         private int grabbedLightIndex = -1;
 
@@ -232,6 +233,17 @@ namespace dev.sudohub.normalprocessor
             container.Add(saveBtn);
         }
 
+        private Color GetBackgroundColor()
+        {
+            return previewBackground switch
+            {
+                1 => Color.black,
+                2 => Color.gray,
+                3 => Color.white,
+                _ => Color.clear
+            };
+        }
+
         private void BuildRightPanel(VisualElement container)
         {
             // Image Preview area
@@ -251,10 +263,10 @@ namespace dev.sudohub.normalprocessor
             toolbar.Add(layerMenu);
 
             var bgMenu = new UnityEditor.UIElements.ToolbarMenu { text = "Background: Default", style = { flexShrink = 0, marginLeft = 5 } };
-            bgMenu.menu.AppendAction("Default", _ => { previewImageContainer.style.backgroundImage = null; bgMenu.text = "Background: Default"; });
-            bgMenu.menu.AppendAction("Black", _ => { previewImageContainer.style.backgroundImage = Texture2D.blackTexture; bgMenu.text = "Background: Black"; });
-            bgMenu.menu.AppendAction("Gray", _ => { previewImageContainer.style.backgroundImage = Texture2D.grayTexture; bgMenu.text = "Background: Gray"; });
-            bgMenu.menu.AppendAction("White", _ => { previewImageContainer.style.backgroundImage = Texture2D.whiteTexture; bgMenu.text = "Background: White"; });
+            bgMenu.menu.AppendAction("Default", _ => { previewBackground = 0; previewImageContainer.style.backgroundImage = null; bgMenu.text = "Background: Default"; UpdatePreview(); });
+            bgMenu.menu.AppendAction("Black", _ => { previewBackground = 1; previewImageContainer.style.backgroundImage = Texture2D.blackTexture; bgMenu.text = "Background: Black"; UpdatePreview(); });
+            bgMenu.menu.AppendAction("Gray", _ => { previewBackground = 2; previewImageContainer.style.backgroundImage = Texture2D.grayTexture; bgMenu.text = "Background: Gray"; UpdatePreview(); });
+            bgMenu.menu.AppendAction("White", _ => { previewBackground = 3; previewImageContainer.style.backgroundImage = Texture2D.whiteTexture; bgMenu.text = "Background: White"; UpdatePreview(); });
             toolbar.Add(bgMenu);
 
             var spacer = new VisualElement() { style = { flexGrow = 1, flexShrink = 1 } };
@@ -331,7 +343,7 @@ namespace dev.sudohub.normalprocessor
 
             if (previewLayer == 3)
             {
-                processor.ComputeLighting(previewLights.ToArray());
+                processor.ComputeLighting(previewLights.ToArray(), GetBackgroundColor());
                 if (previewImage.image != processor.LitTexture)
                     previewImage.image = processor.LitTexture;
                 else
@@ -499,7 +511,7 @@ namespace dev.sudohub.normalprocessor
                 if (evt.button == 1) {
                     if (previewLights.Count < 8) {
                         previewLights.Add(new NormalProcessorGPU.LightData { position = new Vector4(Mathf.Clamp01(uv.x), Mathf.Clamp01(uv.y), 0.5f, 1.5f), color = new Vector4(1f, 1f, 1f, 2f) });
-                        processor?.ComputeLighting(previewLights.ToArray());
+                        processor?.ComputeLighting(previewLights.ToArray(), GetBackgroundColor());
                         previewImage.MarkDirtyRepaint();
                     }
                     return;
@@ -513,7 +525,7 @@ namespace dev.sudohub.normalprocessor
                     }
                     if (closest != -1 && previewLights.Count > 1) {
                         previewLights.RemoveAt(closest);
-                        processor?.ComputeLighting(previewLights.ToArray());
+                        processor?.ComputeLighting(previewLights.ToArray(), GetBackgroundColor());
                         previewImage.MarkDirtyRepaint();
                     }
                     return;
@@ -550,7 +562,7 @@ namespace dev.sudohub.normalprocessor
                 l.position.y = Mathf.Clamp01(uv.y);
                 previewLights[grabbedLightIndex] = l;
                 
-                processor?.ComputeLighting(previewLights.ToArray());
+                processor?.ComputeLighting(previewLights.ToArray(), GetBackgroundColor());
                 previewImage.MarkDirtyRepaint();
                 evt.StopPropagation();
             });
@@ -592,7 +604,7 @@ namespace dev.sudohub.normalprocessor
                     }
                     previewLights[closest] = l;
                     
-                    processor?.ComputeLighting(previewLights.ToArray());
+                    processor?.ComputeLighting(previewLights.ToArray(), GetBackgroundColor());
                     previewImage.MarkDirtyRepaint();
                     evt.StopPropagation();
                 }
