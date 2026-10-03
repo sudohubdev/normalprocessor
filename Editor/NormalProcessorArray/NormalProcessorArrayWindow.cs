@@ -36,6 +36,14 @@ namespace dev.sudohub.normalprocessor
 
         public void CreateGUI()
         {
+            var root = rootVisualElement;
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/dev.sudohub.normalprocessor/Editor Resources/UI/DarkGlassTheme.uss");
+            if (styleSheet != null)
+            {
+                root.styleSheets.Add(styleSheet);
+                root.AddToClassList("root-container");
+            }
+
             // Main horizontal split
             var mainSplit = new TwoPaneSplitView(0, 300, TwoPaneSplitViewOrientation.Horizontal);
 
@@ -59,6 +67,7 @@ namespace dev.sudohub.normalprocessor
         {
             var paramsContainer = new VisualElement() { style = { flexShrink = 0 } };
             container.style.minWidth = 300;
+            container.AddToClassList("glass-panel");
             paramsContainer.style.minHeight = 80;
 
             // Input texture
@@ -141,17 +150,12 @@ namespace dev.sudohub.normalprocessor
 
             //save button
             var saveBtn = new Button(SaveNormalMap) { tooltip = "Process and save as PNG" };
+            saveBtn.AddToClassList("glass-button");
             saveBtn.style.height = 36;
             saveBtn.style.flexShrink = 0;
             saveBtn.style.flexDirection = FlexDirection.Row;
             saveBtn.style.justifyContent = Justify.Center;
             saveBtn.style.alignItems = Align.Center;
-            saveBtn.style.backgroundColor = new Color(0.13f, 0.59f, 0.95f, 1f); // Unity Blue Accent
-            saveBtn.style.color = Color.white;
-            saveBtn.style.borderTopLeftRadius = 4;
-            saveBtn.style.borderTopRightRadius = 4;
-            saveBtn.style.borderBottomLeftRadius = 4;
-            saveBtn.style.borderBottomRightRadius = 4;
             saveBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_SaveAs").image, style = { width = 16, height = 16, marginRight = 8 } });
             saveBtn.Add(new Label("Generate & Save Atlas") { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 14 } });
             container.Add(saveBtn);
@@ -311,6 +315,7 @@ namespace dev.sudohub.normalprocessor
         {
             var paramsContainer = new VisualElement() { style = { flexShrink = 0 } };
             paramsContainer.style.minHeight = 140;
+            paramsContainer.AddToClassList("glass-panel");
 
             // Params Header
             var paramsHeader = new VisualElement()
@@ -332,6 +337,7 @@ namespace dev.sudohub.normalprocessor
 
             //Format Painter (like in Excel)
             var formatBtn = new Button(() => gridState.RequestFormatPainter()) { text = "Format Painter", tooltip = "Copies Options into other cells. As seen on Excel." };
+            formatBtn.AddToClassList("glass-button");
             paramsHeader.Add(formatBtn);
 
             //spacer
@@ -410,12 +416,13 @@ namespace dev.sudohub.normalprocessor
             var previewImageContainer = new VisualElement()
             {
                 style = {
-                    backgroundColor = Color.black,
+                    backgroundColor = new Color(0, 0, 0, 0.3f), // Match glass transparency but darker for image
                     flexGrow = 1,
                     opacity = 1,
                     minHeight = 200
                 }
             };
+            previewImageContainer.AddToClassList("glass-panel");
 
             // Preview controls
             var previewHeader = new VisualElement()

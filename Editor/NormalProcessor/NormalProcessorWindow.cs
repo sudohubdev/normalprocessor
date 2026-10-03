@@ -52,12 +52,20 @@ namespace dev.sudohub.normalprocessor
             var root = rootVisualElement;
             root.style.flexDirection = FlexDirection.Column;
 
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/dev.sudohub.normalprocessor/Editor Resources/UI/DarkGlassTheme.uss");
+            if (styleSheet != null)
+            {
+                root.styleSheets.Add(styleSheet);
+                root.AddToClassList("root-container");
+            }
+
             // Main layout using TwoPaneSplitView
             var splitView = new TwoPaneSplitView(0, 320, TwoPaneSplitViewOrientation.Horizontal);
             root.Add(splitView);
 
             // Left panel for settings
             var leftPanel = new ScrollView(ScrollViewMode.Vertical);
+            leftPanel.AddToClassList("glass-panel");
             leftPanel.style.paddingTop = 10;
             leftPanel.style.paddingBottom = 10;
             leftPanel.style.paddingLeft = 10;
@@ -98,6 +106,7 @@ namespace dev.sudohub.normalprocessor
 
             // Presets Button
             var presetBtn = new Button(ShowPresetMenu) { style = { marginTop = 10, marginBottom = 15, height = 24, flexShrink = 0, flexDirection = FlexDirection.Row, justifyContent = Justify.Center, alignItems = Align.Center } };
+            presetBtn.AddToClassList("glass-button");
             presetBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_Settings").image, style = { width = 16, height = 16, marginRight = 6 } });
             presetBtn.Add(new Label("Load Preset"));
             container.Add(presetBtn);
@@ -163,17 +172,12 @@ namespace dev.sudohub.normalprocessor
 
             // Save Button
             var saveBtn = new Button(SaveTexture) { tooltip = "Process and save as PNG" };
+            saveBtn.AddToClassList("glass-button");
             saveBtn.style.height = 36;
             saveBtn.style.flexShrink = 0;
             saveBtn.style.flexDirection = FlexDirection.Row;
             saveBtn.style.justifyContent = Justify.Center;
             saveBtn.style.alignItems = Align.Center;
-            saveBtn.style.backgroundColor = new Color(0.13f, 0.59f, 0.95f, 1f); // Unity Blue Accent
-            saveBtn.style.color = Color.white;
-            saveBtn.style.borderTopLeftRadius = 4;
-            saveBtn.style.borderTopRightRadius = 4;
-            saveBtn.style.borderBottomLeftRadius = 4;
-            saveBtn.style.borderBottomRightRadius = 4;
             saveBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_SaveAs").image, style = { width = 16, height = 16, marginRight = 8 } });
             saveBtn.Add(new Label("Generate & Save Normal Map") { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 14 } });
             container.Add(saveBtn);

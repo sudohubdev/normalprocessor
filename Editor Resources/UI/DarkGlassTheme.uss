@@ -1,0 +1,64 @@
+/* Dark Glassmorphism Theme for Normal Processor */
+
+.root-container {
+    background-color: #1a1a2e;
+}
+
+.glass-panel {
+    background-color: rgba(30, 30, 45, 0.6);
+    border-radius: 12px;
+    border-left-color: rgba(255, 255, 255, 0.15);
+    border-top-color: rgba(255, 255, 255, 0.15);
+    border-right-color: rgba(255, 255, 255, 0.05);
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+    border-width: 1px;
+}
+
+.glass-button {
+    background-color: rgba(33, 150, 243, 0.8);
+    border-radius: 8px;
+    border-left-color: rgba(255, 255, 255, 0.3);
+    border-top-color: rgba(255, 255, 255, 0.3);
+    border-right-color: rgba(0, 0, 0, 0.3);
+    border-bottom-color: rgba(0, 0, 0, 0.3);
+    border-width: 1px;
+    color: white;
+    transition-duration: 0.2s;
+    transition-property: scale, background-color;
+}
+
+.glass-button:hover {
+    background-color: rgba(66, 165, 245, 0.95);
+    scale: 1.02;
+}
+
+.glass-button:active {
+    scale: 0.98;
+    background-color: rgba(21, 101, 192, 1.0);
+}
+
+.unity-group-box {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
+    padding: 8px;
+}
+
+.unity-toolbar {
+    background-color: rgba(15, 15, 25, 0.9);
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.unity-two-pane-split-view__dragline {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Subtle styling for fields */
+.unity-base-field__input {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
