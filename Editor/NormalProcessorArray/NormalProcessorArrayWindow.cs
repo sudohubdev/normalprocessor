@@ -37,7 +37,7 @@ namespace dev.sudohub.normalprocessor
         public void CreateGUI()
         {
             var root = rootVisualElement;
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/dev.sudohub.normalprocessor/Editor Resources/UI/DarkGlassTheme.uss");
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/dev.sudohub.normalprocessor/Editor Resources/UI/CurrentTheme.uss");
             if (styleSheet != null)
             {
                 root.styleSheets.Add(styleSheet);
@@ -342,6 +342,12 @@ namespace dev.sudohub.normalprocessor
 
             //spacer
             paramsHeader.Add(new VisualElement() { style = { flexGrow = 1 } });
+
+            // Theme Editor Button
+            var themeBtn = new Button(ThemeEditorWindow.ShowWindow) { tooltip = "Open Theme Editor", style = { flexShrink = 0, flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+            themeBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_Settings").image, style = { width = 16, height = 16 } });
+            themeBtn.AddToClassList("glass-button");
+            paramsHeader.Add(themeBtn);
 
             //Lock Params
             var lockParams = new Toggle("Lock Options") { style = { flexShrink = 10 }, tooltip = "Locks Options for all Cells, aka editing all in once." };

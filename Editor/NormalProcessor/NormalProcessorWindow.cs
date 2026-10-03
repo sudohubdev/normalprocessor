@@ -52,7 +52,7 @@ namespace dev.sudohub.normalprocessor
             var root = rootVisualElement;
             root.style.flexDirection = FlexDirection.Column;
 
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/dev.sudohub.normalprocessor/Editor Resources/UI/DarkGlassTheme.uss");
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/dev.sudohub.normalprocessor/Editor Resources/UI/CurrentTheme.uss");
             if (styleSheet != null)
             {
                 root.styleSheets.Add(styleSheet);
@@ -203,6 +203,10 @@ namespace dev.sudohub.normalprocessor
             refreshBtn.Add(new Label("Refresh"));
             toolbar.Add(refreshBtn);
             
+            var themeBtn = new UnityEditor.UIElements.ToolbarButton(ThemeEditorWindow.ShowWindow) { tooltip = "Open Theme Editor", style = { flexShrink = 0, flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+            themeBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_Settings").image, style = { width = 16, height = 16 } });
+            toolbar.Add(themeBtn);
+
             container.Add(toolbar);
 
             // Image Preview area
