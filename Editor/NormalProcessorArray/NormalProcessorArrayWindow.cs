@@ -37,11 +37,15 @@ namespace dev.sudohub.normalprocessor
         public void CreateGUI()
         {
             var root = rootVisualElement;
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/dev.sudohub.normalprocessor/Editor Resources/UI/CurrentTheme.uss");
-            if (styleSheet != null)
+            var ussGuids = AssetDatabase.FindAssets("CurrentTheme t:StyleSheet");
+            if (ussGuids.Length > 0)
             {
-                root.styleSheets.Add(styleSheet);
-                root.AddToClassList("root-container");
+                var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(AssetDatabase.GUIDToAssetPath(ussGuids[0]));
+                if (styleSheet != null)
+                {
+                    root.styleSheets.Add(styleSheet);
+                    root.AddToClassList("root-container");
+                }
             }
 
             // Main horizontal split

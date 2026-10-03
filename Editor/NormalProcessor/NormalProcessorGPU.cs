@@ -29,8 +29,13 @@ namespace dev.sudohub.normalprocessor
         public NormalProcessorGPU()
         {
 
-            computeShader = AssetDatabase.LoadAssetAtPath<ComputeShader>("Packages/dev.sudohub.normalprocessor/Editor Resources/Shaders/NormalMapComputeShader.compute");
-            lightCompute = AssetDatabase.LoadAssetAtPath<ComputeShader>("Packages/dev.sudohub.normalprocessor/Editor Resources/Shaders/LightPreviewCompute.compute");
+            var csGuids = AssetDatabase.FindAssets("NormalMapComputeShader t:ComputeShader");
+            if (csGuids.Length > 0)
+                computeShader = AssetDatabase.LoadAssetAtPath<ComputeShader>(AssetDatabase.GUIDToAssetPath(csGuids[0]));
+
+            var lcGuids = AssetDatabase.FindAssets("LightPreviewCompute t:ComputeShader");
+            if (lcGuids.Length > 0)
+                lightCompute = AssetDatabase.LoadAssetAtPath<ComputeShader>(AssetDatabase.GUIDToAssetPath(lcGuids[0]));
 
             if (computeShader == null || lightCompute == null)
             {

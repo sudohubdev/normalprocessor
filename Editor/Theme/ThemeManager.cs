@@ -9,46 +9,37 @@ namespace dev.sudohub.normalprocessor
     {
         private const string PREF_KEY = "NormalProcessor_CurrentThemeData";
         
-        public static NormalProcessorTheme CurrentTheme { get; private set; }
+        public static NormalProcessorTheme CurrentTheme 
+        { 
+            get 
+            {
+                if (EditorPrefs.HasKey(PREF_KEY))
+                {
+                    string json = EditorPrefs.GetString(PREF_KEY);
+                    try {
+                        var theme = JsonUtility.FromJson<NormalProcessorTheme>(json);
+                        if (theme != null) return theme;
+                    } catch {}
+                }
+                return NormalProcessorTheme.DarkGlass();
+            }
+        }
         
         static ThemeManager()
         {
             LoadCurrentTheme();
         }
-
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void InitStaticVars()
-        {
-            // Specifically added to satisfy Asset Store static validation checks for Fast Enter Play Mode
-            LoadCurrentTheme();
-        }
         
         public static void LoadCurrentTheme()
         {
-            if (EditorPrefs.HasKey(PREF_KEY))
-            {
-                string json = EditorPrefs.GetString(PREF_KEY);
-                try {
-                    CurrentTheme = JsonUtility.FromJson<NormalProcessorTheme>(json);
-                    if (CurrentTheme == null) CurrentTheme = NormalProcessorTheme.DarkGlass();
-                } catch {
-                    CurrentTheme = NormalProcessorTheme.DarkGlass();
-                }
-            }
-            else
-            {
-                CurrentTheme = NormalProcessorTheme.DarkGlass();
-            }
-            
             CompileThemeToUSS(CurrentTheme);
         }
         
         public static void ApplyTheme(NormalProcessorTheme theme)
         {
-            CurrentTheme = theme;
-            string json = JsonUtility.ToJson(CurrentTheme);
+            string json = JsonUtility.ToJson(theme);
             EditorPrefs.SetString(PREF_KEY, json);
-            CompileThemeToUSS(CurrentTheme);
+            CompileThemeToUSS(theme);
             
             // Trigger an editor refresh to reload the uss in the active windows
             AssetDatabase.Refresh();
