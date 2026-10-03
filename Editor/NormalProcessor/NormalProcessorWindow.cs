@@ -234,6 +234,10 @@ namespace dev.sudohub.normalprocessor
 
         private void BuildRightPanel(VisualElement container)
         {
+            // Image Preview area
+            var previewImageContainer = new VisualElement() { style = { flexGrow = 1, backgroundColor = new Color(0, 0, 0, 0.3f) } };
+            previewImageContainer.AddToClassList("glass-panel");
+
             // Toolbar
             var toolbar = new UnityEditor.UIElements.Toolbar();
             toolbar.style.flexShrink = 0;
@@ -245,6 +249,13 @@ namespace dev.sudohub.normalprocessor
             layerMenu.menu.AppendAction("Normal", _ => { previewLayer = 2; layerMenu.text = "Preview Layer: Normal"; UpdatePreview(); });
             layerMenu.menu.AppendAction("Lighting", _ => { previewLayer = 3; layerMenu.text = "Preview Layer: Lighting"; UpdatePreview(); });
             toolbar.Add(layerMenu);
+
+            var bgMenu = new UnityEditor.UIElements.ToolbarMenu { text = "Background: Default", style = { flexShrink = 0, marginLeft = 5 } };
+            bgMenu.menu.AppendAction("Default", _ => { previewImageContainer.style.backgroundImage = null; bgMenu.text = "Background: Default"; });
+            bgMenu.menu.AppendAction("Black", _ => { previewImageContainer.style.backgroundImage = Texture2D.blackTexture; bgMenu.text = "Background: Black"; });
+            bgMenu.menu.AppendAction("Gray", _ => { previewImageContainer.style.backgroundImage = Texture2D.grayTexture; bgMenu.text = "Background: Gray"; });
+            bgMenu.menu.AppendAction("White", _ => { previewImageContainer.style.backgroundImage = Texture2D.whiteTexture; bgMenu.text = "Background: White"; });
+            toolbar.Add(bgMenu);
 
             var spacer = new VisualElement() { style = { flexGrow = 1, flexShrink = 1 } };
             toolbar.Add(spacer);
@@ -259,10 +270,6 @@ namespace dev.sudohub.normalprocessor
             toolbar.Add(themeBtn);
 
             container.Add(toolbar);
-
-            // Image Preview area
-            var previewImageContainer = new VisualElement() { style = { flexGrow = 1, backgroundColor = new Color(0, 0, 0, 0.3f) } };
-            previewImageContainer.AddToClassList("glass-panel");
             
             previewImage = new Image() { style = { flexGrow = 1, flexShrink = 1 } };
             previewImage.scaleMode = ScaleMode.ScaleToFit;
