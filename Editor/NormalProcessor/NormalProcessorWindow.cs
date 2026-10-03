@@ -206,9 +206,14 @@ namespace dev.sudohub.normalprocessor
             container.Add(toolbar);
 
             // Image Preview area
-            previewImage = new Image() { style = { flexGrow = 1, flexShrink = 1, marginTop = 10, marginBottom = 10, marginLeft = 10, marginRight = 10 } };
+            var previewImageContainer = new VisualElement() { style = { flexGrow = 1, backgroundColor = new Color(0, 0, 0, 0.3f), marginTop = 10, marginBottom = 10, marginLeft = 10, marginRight = 10 } };
+            previewImageContainer.AddToClassList("glass-panel");
+            
+            previewImage = new Image() { style = { flexGrow = 1, flexShrink = 1 } };
             previewImage.scaleMode = ScaleMode.ScaleToFit;
-            container.Add(previewImage);
+            
+            previewImageContainer.Add(previewImage);
+            container.Add(previewImageContainer);
 
             if (inputTexture != null)
             {
