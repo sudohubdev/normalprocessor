@@ -66,10 +66,6 @@ namespace dev.sudohub.normalprocessor
             // Left panel for settings
             var leftPanel = new ScrollView(ScrollViewMode.Vertical);
             leftPanel.AddToClassList("glass-panel");
-            leftPanel.style.paddingTop = 10;
-            leftPanel.style.paddingBottom = 10;
-            leftPanel.style.paddingLeft = 10;
-            leftPanel.style.paddingRight = 10;
             leftPanel.style.minWidth = 300;
 
             // Right panel for preview
@@ -189,6 +185,7 @@ namespace dev.sudohub.normalprocessor
             var toolbar = new UnityEditor.UIElements.Toolbar();
             toolbar.style.flexShrink = 0;
             toolbar.style.minHeight = 24;
+            toolbar.style.paddingLeft = 5;
             var layerMenu = new UnityEditor.UIElements.ToolbarMenu { text = "Preview Layer: Normal", style = { flexShrink = 0 } };
             layerMenu.menu.AppendAction("Input", _ => { previewLayer = 0; layerMenu.text = "Preview Layer: Input"; UpdatePreview(); });
             layerMenu.menu.AppendAction("Gauss", _ => { previewLayer = 1; layerMenu.text = "Preview Layer: Gauss"; UpdatePreview(); });
@@ -210,7 +207,7 @@ namespace dev.sudohub.normalprocessor
             container.Add(toolbar);
 
             // Image Preview area
-            var previewImageContainer = new VisualElement() { style = { flexGrow = 1, backgroundColor = new Color(0, 0, 0, 0.3f), marginTop = 10, marginBottom = 10, marginLeft = 10, marginRight = 10 } };
+            var previewImageContainer = new VisualElement() { style = { flexGrow = 1, backgroundColor = new Color(0, 0, 0, 0.3f) } };
             previewImageContainer.AddToClassList("glass-panel");
             
             previewImage = new Image() { style = { flexGrow = 1, flexShrink = 1 } };

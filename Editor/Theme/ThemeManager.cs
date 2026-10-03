@@ -92,6 +92,8 @@ namespace dev.sudohub.normalprocessor
     border-top-width: 1px;
     border-right-width: 1px;
     border-bottom-width: 1px;
+    margin: 8px;
+    padding: 12px;
 }
 
 .glass-button {
@@ -106,6 +108,7 @@ namespace dev.sudohub.normalprocessor
     text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.5);
     transition-duration: 0.2s;
     transition-property: scale, background-color;
+    padding: 4px 8px;
 }
 
 .glass-button:hover {
@@ -124,8 +127,9 @@ namespace dev.sudohub.normalprocessor
     border-color: rgba(255, 255, 255, 0.05);
     border-left-width: 3px;
     border-left-color: {ACCENT_ALT_COLOR};
-    margin-top: 10px;
-    padding: 8px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
 }
 
 .unity-group-box__label {
@@ -150,6 +154,24 @@ namespace dev.sudohub.normalprocessor
     border-color: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     color: {TEXT_COLOR};
+}
+
+.unity-toggle__input {
+    background-color: transparent;
+    border-color: transparent;
+}
+
+.unity-toggle__checkmark {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    border-width: 1px;
+}
+
+.unity-toggle__input:checked .unity-toggle__checkmark {
+    background-color: {ACCENT_COLOR};
+    border-color: {ACCENT_ALT_COLOR};
+    -unity-background-image-tint-color: #ffffff;
 }
 
 .unity-base-field__label {
