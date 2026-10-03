@@ -28,7 +28,7 @@ namespace dev.sudohub.normalprocessor
         private Changes changes = Changes.Everything;
         private NormalProcessorGPU processor;
 
-        [MenuItem("Assets/Dark/Normal Processor")]
+        [MenuItem("Window/Dark/Normal Processor")]
         public static void ShowWindow()
         {
             GetWindow<NormalProcessorWindow>("Normal Processor");

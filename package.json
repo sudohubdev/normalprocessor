@@ -9,7 +9,6 @@
   "changelogUrl": "https://github.com/sudohubdev/normalprocessor/blob/main/CHANGELOG.md",
   "licensesUrl": "https://github.com/sudohubdev/normalprocessor/blob/main/LICENSE",
   "license": "MIT",
-  "hideInEditor": true,
   "keywords": [
     "editor",
     "tools",

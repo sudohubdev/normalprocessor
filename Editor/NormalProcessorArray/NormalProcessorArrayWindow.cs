@@ -18,7 +18,7 @@ namespace dev.sudohub.normalprocessor
         private Image prevSelected;
 
         #region menu
-        [MenuItem("Assets/Dark/Normal Processor (Atlas)")]
+        [MenuItem("Window/Dark/Normal Processor (Atlas)")]
         public static void ShowWindow()
         {
             var window = GetWindow<NormalProcessorArrayWindow>("Normal Processor (Atlas)");
