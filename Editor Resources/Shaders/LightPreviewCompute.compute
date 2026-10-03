@@ -1,0 +1,65 @@
+
+#pragma kernel LightingPass
+#pragma target cs_5_0
+
+Texture2D<float4> AlbedoTexture;
+Texture2D<float4> NormalTexture;
+RWTexture2D<float4> OutputTexture;
+
+int _Width;
+int _Height;
+
+int _LightCount;
+float4 _LightPositions[16]; // x, y (0..1), z (height), w (radius)
+float4 _LightColors[16];    // r, g, b, a (intensity)
+float _UseAlbedo; // 1.0 if albedo assigned, 0.0 otherwise
+
+float3 DecodeNormal(float4 n) {
+    return normalize(n.rgb * 2.0 - 1.0);
+}
+
+[numthreads(8, 8, 1)]
+void LightingPass(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
+
+    int2 uv = id.xy;
+    float4 albedo = _UseAlbedo > 0.5 ? AlbedoTexture[uv] : float4(0.5, 0.5, 0.5, 1.0);
+    float3 normal = DecodeNormal(NormalTexture[uv]);
+
+    // Use normalized coordinates. Note: in UI Toolkit image, y=0 is top, y=1 is bottom. 
+    // Wait, in Compute Shader Texture2D, y=0 is bottom usually. Let's just use raw uv.y / Height
+    float3 pixelPos = float3((float)id.x / _Width, (float)id.y / _Height, 0.0);
+
+    float3 finalColor = albedo.rgb * 0.1; // ambient
+
+    for (int i = 0; i < _LightCount; i++) {
+        float4 lPos = _LightPositions[i];
+        float4 lCol = _LightColors[i];
+
+        float3 lightWorldPos = float3(lPos.x, lPos.y, lPos.z);
+        float3 lightDir = lightWorldPos - pixelPos;
+        
+        // Correct aspect ratio for distance calculation so lights are circles, not ovals
+        float aspect = (float)_Width / (float)_Height;
+        float3 distVector = lightDir;
+        distVector.x *= aspect; 
+        float distance = length(distVector);
+
+        float attenuation = saturate(1.0 - (distance / lPos.w));
+        attenuation *= attenuation;
+
+        lightDir = normalize(lightDir);
+
+        float ndotl = max(0.0, dot(normal, lightDir));
+        
+        float3 viewDir = normalize(float3(0.5, 0.5, 2.0) - pixelPos); 
+        float3 halfDir = normalize(lightDir + viewDir);
+        float spec = pow(max(0.0, dot(normal, halfDir)), 64.0);
+
+        finalColor += albedo.rgb * lCol.rgb * lCol.a * ndotl * attenuation;
+        finalColor += lCol.rgb * lCol.a * spec * attenuation * 0.5;
+    }
+
+    OutputTexture[id.xy] = float4(saturate(finalColor), 1.0);
+}
+

@@ -24,7 +24,9 @@ namespace dev.sudohub.normalprocessor
     {
         private Preset currentPreset = new("Default Preset");
         private Texture2D inputTexture;
-        private int previewLayer = 2; // 0=Input, 1=Gauss, 2=Normal
+        private int previewLayer = 2; // 0=Input, 1=Gauss, 2=Normal, 3=Lighting
+        private System.Collections.Generic.List<NormalProcessorGPU.LightData> previewLights = new() { new NormalProcessorGPU.LightData { position = new Vector4(0.5f, 0.5f, 0.5f, 1.5f), color = new Vector4(1f, 1f, 1f, 2f) } };
+        private int grabbedLightIndex = -1;
 
         private Changes changes = Changes.Everything;
         private NormalProcessorGPU processor;
@@ -214,7 +216,7 @@ namespace dev.sudohub.normalprocessor
             container.Add(spacer);
 
             // Save Button
-            var saveBtn = new Button(SaveTexture) { tooltip = "Process and save as PNG" };
+            var saveBtn = new Button(SaveTexture) { name = "saveBtn", tooltip = "Process and save as PNG" };
             saveBtn.AddToClassList("glass-button");
             saveBtn.style.height = 36;
             saveBtn.style.flexShrink = 0;
@@ -237,6 +239,7 @@ namespace dev.sudohub.normalprocessor
             layerMenu.menu.AppendAction("Input", _ => { previewLayer = 0; layerMenu.text = "Preview Layer: Input"; UpdatePreview(); });
             layerMenu.menu.AppendAction("Gauss", _ => { previewLayer = 1; layerMenu.text = "Preview Layer: Gauss"; UpdatePreview(); });
             layerMenu.menu.AppendAction("Normal", _ => { previewLayer = 2; layerMenu.text = "Preview Layer: Normal"; UpdatePreview(); });
+            layerMenu.menu.AppendAction("Lighting", _ => { previewLayer = 3; layerMenu.text = "Preview Layer: Lighting"; UpdatePreview(); });
             toolbar.Add(layerMenu);
 
             var spacer = new VisualElement() { style = { flexGrow = 1, flexShrink = 1 } };
@@ -261,6 +264,7 @@ namespace dev.sudohub.normalprocessor
             previewImage.scaleMode = ScaleMode.ScaleToFit;
             
             previewImageContainer.Add(previewImage);
+            SetupLightingInteractions();
             container.Add(previewImageContainer);
 
             if (inputTexture != null)
@@ -308,11 +312,30 @@ namespace dev.sudohub.normalprocessor
             
             changes = Changes.None;
 
-            previewImage.image = previewLayer switch {
-                1 => processor.TempTexture,
-                2 => processor.OutputTexture,
-                _ => processor.InputTexture
-            };
+            var saveBtn = rootVisualElement.Q<Button>("saveBtn");
+            if (saveBtn != null) {
+                var lbl = saveBtn.Q<Label>();
+                if (lbl != null) lbl.text = previewLayer == 3 ? "Export Lit Preview" : "Generate & Save Normal Map";
+            }
+
+            if (previewLayer == 3)
+            {
+                processor.ComputeLighting(previewLights.ToArray());
+                if (previewImage.image != processor.LitTexture)
+                    previewImage.image = processor.LitTexture;
+                else
+                    previewImage.MarkDirtyRepaint();
+            }
+            else
+            {
+                var targetTex = previewLayer switch {
+                    1 => (Texture)processor.TempTexture,
+                    2 => processor.OutputTexture,
+                    _ => processor.InputTexture
+                };
+                if (previewImage.image != targetTex)
+                    previewImage.image = targetTex;
+            }
         }
 
         private void ShowPresetMenu()
@@ -340,31 +363,229 @@ namespace dev.sudohub.normalprocessor
         {
             if (inputTexture == null || processor == null) return;
 
-            Texture2D normalMap = processor.GetTexture();
+            bool isLit = previewLayer == 3;
+            Texture2D mapToSave = processor.GetTexture(isLit ? processor.LitTexture : processor.OutputTexture);
             string assetPath = AssetDatabase.GetAssetPath(inputTexture);
             currentPreset.name = System.IO.Path.GetFileNameWithoutExtension(assetPath);
 
             var path = EditorUtility.SaveFilePanel(
-                "Save Normal Map PNG",
+                isLit ? "Save Lit Image PNG" : "Save Normal Map PNG",
                 System.IO.Path.GetDirectoryName(assetPath),
-                currentPreset.name + "_Normal.png",
+                currentPreset.name + (isLit ? "_Lit.png" : "_Normal.png"),
                 "png");
 
             if (path.Length != 0)
             {
-                System.IO.File.WriteAllBytes(path, normalMap.EncodeToPNG());
+                System.IO.File.WriteAllBytes(path, mapToSave.EncodeToPNG());
                 AssetDatabase.Refresh();
-                PresetData.instance.Add(currentPreset);
+                
+                // Only save preset if it's an actual normal map generation
+                if (!isLit && !currentPreset.processExistingNormal) 
+                {
+                    PresetData.instance.Add(currentPreset);
+                }
             }
             
             // Clean up the CPU texture to prevent memory leaks!
-            DestroyImmediate(normalMap);
+            DestroyImmediate(mapToSave);
         }
 
         private void OnDisable()
         {
             processor?.Dispose();
             processor = null;
+        }
+
+        private Rect GetTextureRect()
+        {
+            if (processor == null || processor.InputTexture == null || previewImage.layout.width == 0) return new Rect();
+            float imgAspect = (float)processor.InputTexture.width / processor.InputTexture.height;
+            float layAspect = previewImage.layout.width / previewImage.layout.height;
+            
+            float drawW, drawH, drawX, drawY;
+            if (imgAspect > layAspect) {
+                drawW = previewImage.layout.width;
+                drawH = previewImage.layout.width / imgAspect;
+                drawX = 0;
+                drawY = (previewImage.layout.height - drawH) / 2.0f;
+            } else {
+                drawH = previewImage.layout.height;
+                drawW = previewImage.layout.height * imgAspect;
+                drawX = (previewImage.layout.width - drawW) / 2.0f;
+                drawY = 0;
+            }
+            return new Rect(drawX, drawY, drawW, drawH);
+        }
+
+        private void SetupLightingInteractions()
+        {
+            var previewImageContainer = previewImage.parent;
+            bool showLightingTips = true;
+            
+            var tipsBtn = new Button(() => { showLightingTips = !showLightingTips; previewImage.MarkDirtyRepaint(); }) { text = "Toggle Shortcuts" };
+            tipsBtn.AddToClassList("glass-button");
+            tipsBtn.style.position = Position.Absolute;
+            tipsBtn.style.left = 10;
+            tipsBtn.style.top = 10;
+            tipsBtn.style.display = DisplayStyle.None;
+            previewImageContainer.Add(tipsBtn);
+            
+            var gizmoOverlay = new IMGUIContainer(() => {
+                if (previewLayer != 3) {
+                    tipsBtn.style.display = DisplayStyle.None;
+                    return;
+                }
+                tipsBtn.style.display = DisplayStyle.Flex;
+                Handles.BeginGUI();
+                
+                if (showLightingTips) {
+                    GUI.color = new Color(1, 1, 1, 0.8f);
+                    GUI.Box(new Rect(10, 40, 290, 110), "");
+                    GUIStyle labelStyle = new GUIStyle(EditorStyles.label) { wordWrap = true, normal = { textColor = Color.white } };
+                    GUI.Label(new Rect(15, 45, 280, 110), "LIGHTING CONTROLS:\n• Left Click & Drag: Move Light\n• Right Click: Spawn Light\n• Middle Click: Delete Light\n• Scroll Wheel: Radius (Z-Height)\n• Shift/Ctrl + Scroll: Intensity\n*(Note: Cannot delete the final light)*", labelStyle);
+                }
+                
+                Rect texRect = GetTextureRect();
+                if (texRect.width > 0) {
+                    for (int i = 0; i < previewLights.Count; i++) {
+                        var l = previewLights[i];
+                        Vector2 pos = new Vector2(texRect.x + l.position.x * texRect.width, texRect.y + (1.0f - l.position.y) * texRect.height);
+                        
+                        Handles.color = i == grabbedLightIndex ? Color.green : new Color(1, 0.8f, 0.2f, 0.8f);
+                        float radius = l.position.w * 50f;
+                        Handles.DrawWireDisc(pos, Vector3.forward, radius);
+                        Handles.DrawWireDisc(pos, Vector3.forward, radius * 0.9f);
+                        
+                        GUI.color = i == grabbedLightIndex ? Color.green : Color.yellow;
+                        GUI.Label(new Rect(pos.x - 10, pos.y - 10, 20, 20), "☼", new GUIStyle(EditorStyles.largeLabel) { alignment = TextAnchor.MiddleCenter });
+                    }
+                }
+                Handles.EndGUI();
+            }) { pickingMode = PickingMode.Ignore, style = { position = Position.Absolute, left = 0, top = 0, right = 0, bottom = 0 } };
+            
+            previewImage.Add(gizmoOverlay);
+            
+            float zoom = 1.0f;
+            Vector2 pan = Vector2.zero;
+
+            Vector2 MouseToUV(Vector2 mousePos) {
+                Rect rect = GetTextureRect();
+                if(rect.width == 0) return Vector2.zero;
+                return new Vector2((mousePos.x - rect.x) / rect.width, 1.0f - ((mousePos.y - rect.y) / rect.height));
+            }
+
+            previewImage.RegisterCallback<MouseDownEvent>(evt => {
+                if (evt.button == 2 && previewLayer != 3) {
+                    previewImage.CaptureMouse();
+                    evt.StopPropagation();
+                    return;
+                }
+
+                if (previewLayer != 3) return;
+                
+                Vector2 uv = MouseToUV(evt.localMousePosition);
+
+                if (evt.button == 1) {
+                    if (previewLights.Count < 8) {
+                        previewLights.Add(new NormalProcessorGPU.LightData { position = new Vector4(Mathf.Clamp01(uv.x), Mathf.Clamp01(uv.y), 0.5f, 1.5f), color = new Vector4(1f, 1f, 1f, 2f) });
+                        processor?.ComputeLighting(previewLights.ToArray());
+                        previewImage.MarkDirtyRepaint();
+                    }
+                    return;
+                }
+                
+                if (evt.button == 2) { 
+                    int closest = -1; float minDist = 0.05f;
+                    for (int i = 0; i < previewLights.Count; i++) {
+                        float dist = Vector2.Distance(new Vector2(previewLights[i].position.x, previewLights[i].position.y), uv);
+                        if (dist < minDist) { closest = i; minDist = dist; }
+                    }
+                    if (closest != -1 && previewLights.Count > 1) {
+                        previewLights.RemoveAt(closest);
+                        processor?.ComputeLighting(previewLights.ToArray());
+                        previewImage.MarkDirtyRepaint();
+                    }
+                    return;
+                }
+
+                if (evt.button == 0) {
+                    grabbedLightIndex = -1;
+                    float minDist = 0.1f;
+                    for (int i = 0; i < previewLights.Count; i++) {
+                        float dist = Vector2.Distance(new Vector2(previewLights[i].position.x, previewLights[i].position.y), uv);
+                        if (dist < minDist) { grabbedLightIndex = i; minDist = dist; }
+                    }
+                    if (grabbedLightIndex != -1) {
+                        previewImage.CaptureMouse();
+                        previewImage.MarkDirtyRepaint();
+                        evt.StopPropagation();
+                    }
+                }
+            });
+
+            previewImage.RegisterCallback<MouseMoveEvent>(evt => {
+                if (previewImage.HasMouseCapture() && evt.pressedButtons == 4) {
+                    pan += evt.mouseDelta;
+                    previewImage.style.translate = new StyleTranslate(new Translate(pan.x, pan.y, 0));
+                    evt.StopPropagation();
+                    return;
+                }
+
+                if (previewLayer != 3 || grabbedLightIndex == -1 || !previewImage.HasMouseCapture()) return;
+                
+                Vector2 uv = MouseToUV(evt.localMousePosition);
+                var l = previewLights[grabbedLightIndex];
+                l.position.x = Mathf.Clamp01(uv.x);
+                l.position.y = Mathf.Clamp01(uv.y);
+                previewLights[grabbedLightIndex] = l;
+                
+                processor?.ComputeLighting(previewLights.ToArray());
+                previewImage.MarkDirtyRepaint();
+                evt.StopPropagation();
+            });
+
+            previewImage.RegisterCallback<MouseUpEvent>(evt => {
+                if (previewImage.HasMouseCapture()) {
+                    grabbedLightIndex = -1;
+                    previewImage.ReleaseMouse();
+                    previewImage.MarkDirtyRepaint();
+                    evt.StopPropagation();
+                }
+            });
+
+            previewImage.RegisterCallback<WheelEvent>(evt => {
+                if (previewLayer != 3 || evt.altKey) {
+                    float scrollDelta = evt.delta.y != 0 ? evt.delta.y : evt.delta.x;
+                    float zoomDelta = -scrollDelta * 0.05f;
+                    zoom = Mathf.Clamp(zoom + zoomDelta, 0.1f, 10f);
+                    previewImage.style.scale = new StyleScale(new Scale(new Vector3(zoom, zoom, 1)));
+                    evt.StopPropagation();
+                    return;
+                }
+
+                Vector2 uv = MouseToUV(evt.localMousePosition);
+                int closest = -1; float minDist = 0.1f;
+                for (int i = 0; i < previewLights.Count; i++) {
+                    float dist = Vector2.Distance(new Vector2(previewLights[i].position.x, previewLights[i].position.y), uv);
+                    if (dist < minDist) { closest = i; minDist = dist; }
+                }
+                
+                if (closest != -1) {
+                    var l = previewLights[closest];
+                    float scrollDelta = evt.delta.y != 0 ? evt.delta.y : evt.delta.x;
+                    if (evt.shiftKey || evt.ctrlKey || evt.commandKey) {
+                        l.color.w = Mathf.Clamp(l.color.w - scrollDelta * 0.1f, 0.1f, 10f);
+                    } else {
+                        l.position.z = Mathf.Clamp(l.position.z - scrollDelta * 0.05f, 0.05f, 5f);
+                        l.position.w = l.position.z * 3f;
+                    }
+                    previewLights[closest] = l;
+                    
+                    processor?.ComputeLighting(previewLights.ToArray());
+                    previewImage.MarkDirtyRepaint();
+                    evt.StopPropagation();
+                }
+            });
         }
     }
 }

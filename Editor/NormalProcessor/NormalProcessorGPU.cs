@@ -9,11 +9,13 @@ namespace dev.sudohub.normalprocessor
     public class NormalProcessorGPU : System.IDisposable
     {
         private readonly ComputeShader computeShader;
+        private readonly ComputeShader lightCompute;
         //pipeline textures
         public Texture2D InputTexture { get; private set; }
         public RenderTexture TempTexture { get; private set; }
         public RenderTexture TempTexture2 { get; private set; }
         public RenderTexture OutputTexture { get; private set; }
+        public RenderTexture LitTexture { get; private set; }
 
         //curve LUT
         private static readonly int resolution = 256;
@@ -28,11 +30,11 @@ namespace dev.sudohub.normalprocessor
         {
 
             computeShader = AssetDatabase.LoadAssetAtPath<ComputeShader>("Packages/dev.sudohub.normalprocessor/Editor Resources/Shaders/NormalMapComputeShader.compute");
-            //computeShader = (ComputeShader)Resources.Load("NormalMapComputeShader");
+            lightCompute = AssetDatabase.LoadAssetAtPath<ComputeShader>("Packages/dev.sudohub.normalprocessor/Editor Resources/Shaders/LightPreviewCompute.compute");
 
-            if (computeShader == null)
+            if (computeShader == null || lightCompute == null)
             {
-                Debug.LogError("[Normal Processor] Failed to load Normal Processor Shader. Check the package integrity!");
+                Debug.LogError("[Normal Processor] Failed to load Compute Shaders. Check the package integrity!");
                 return;
             }
         }
@@ -79,6 +81,12 @@ namespace dev.sudohub.normalprocessor
                 UnityEngine.Object.DestroyImmediate(OutputTexture);
                 OutputTexture = null;
             }
+            if (LitTexture != null)
+            {
+                LitTexture.Release();
+                UnityEngine.Object.DestroyImmediate(LitTexture);
+                LitTexture = null;
+            }
         }
 
         private void GenTextures()
@@ -100,6 +108,12 @@ namespace dev.sudohub.normalprocessor
                 enableRandomWrite = true
             };
             OutputTexture.Create();
+            
+            LitTexture = new(InputTexture.width, InputTexture.height, 0, RenderTextureFormat.ARGB32)
+            {
+                enableRandomWrite = true
+            };
+            LitTexture.Create();
         }
 
         public void SetTiling(Vector2Int size, Vector2Int offset)
@@ -189,12 +203,13 @@ namespace dev.sudohub.normalprocessor
             //Debug.Log("Normal computation applied");
         }
 
-        public Texture2D GetTexture()
+        public Texture2D GetTexture(RenderTexture rt = null)
         {
+            if (rt == null) rt = OutputTexture;
             // Convert the output texture to Texture2D
-            Texture2D result = new(InputTexture.width, InputTexture.height, TextureFormat.RGB24, false);
-            RenderTexture.active = OutputTexture;
-            result.ReadPixels(new Rect(0, 0, OutputTexture.width, OutputTexture.height), 0, 0);
+            Texture2D result = new(rt.width, rt.height, TextureFormat.RGB24, false);
+            RenderTexture.active = rt;
+            result.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
             result.Apply();
 
             RenderTexture.active = null;
@@ -227,6 +242,43 @@ namespace dev.sudohub.normalprocessor
             computeShader.SetTexture(kernel, "InputTexture", InputTexture);
             computeShader.SetTexture(kernel, "OutputTexture", OutputTexture);
             computeShader.Dispatch(kernel, threadGroupsX, threadGroupsY, 1);
+        }
+
+        public struct LightData
+        {
+            public Vector4 position; // x,y (uv), z (height), w (radius)
+            public Vector4 color;    // r,g,b, a (intensity)
+        }
+
+        public void ComputeLighting(LightData[] lights)
+        {
+            if (lightCompute == null || LitTexture == null) return;
+            
+            int kernel = lightCompute.FindKernel("LightingPass");
+            int blockWidth = InputTexture.width / tileSize.x;
+            int blockHeight = InputTexture.height / tileSize.y;
+            lightCompute.SetInt("_Width", blockWidth);
+            lightCompute.SetInt("_Height", blockHeight);
+            
+            lightCompute.SetInt("_LightCount", lights.Length);
+            
+            Vector4[] posArray = new Vector4[16];
+            Vector4[] colArray = new Vector4[16];
+            for (int i = 0; i < lights.Length && i < 16; i++) {
+                posArray[i] = lights[i].position;
+                colArray[i] = lights[i].color;
+            }
+            lightCompute.SetVectorArray("_LightPositions", posArray);
+            lightCompute.SetVectorArray("_LightColors", colArray);
+            
+            lightCompute.SetFloat("_UseAlbedo", 1.0f); // Default to on, could be dynamic
+            
+            int threadGroupsX = Mathf.CeilToInt(blockWidth / 8.0f);
+            int threadGroupsY = Mathf.CeilToInt(blockHeight / 8.0f);
+            lightCompute.SetTexture(kernel, "AlbedoTexture", InputTexture);
+            lightCompute.SetTexture(kernel, "NormalTexture", OutputTexture);
+            lightCompute.SetTexture(kernel, "OutputTexture", LitTexture);
+            lightCompute.Dispatch(kernel, threadGroupsX, threadGroupsY, 1);
         }
     }
 }
