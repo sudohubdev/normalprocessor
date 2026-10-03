@@ -32,8 +32,8 @@ namespace dev.sudohub.normalprocessor
         private Image previewImage;
         private VisualElement rightPanel;
 
-        [MenuItem("Window/Darkness Team/Normal Processor")]
-        [MenuItem("Assets/Darkness Team/Normal Processor")]
+        [MenuItem("Window/Darkness Team/Normal Processor/Single Texture Processor")]
+        [MenuItem("Assets/Darkness Team/Normal Processor/Single Texture Processor")]
         public static void ShowWindow()
         {
             var window = GetWindow<NormalProcessorWindow>("Normal Processor");
