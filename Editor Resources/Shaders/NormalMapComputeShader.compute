@@ -1,11 +1,12 @@
-#pragma kernel GaussianBlur
-#pragma kernel NormalKernel
+#pragma kernel GaussianBlurHorizontal
+#pragma kernel GaussianBlurVertical
 #pragma target cs_5_0 // or cs_5_0 for compute shaders
 #pragma multi_compile __ DO_TILING
 #pragma multi_compile __ USE_SCHARR
 
 // Texture inputs and outputs
 Texture2D<float4> InputTexture;
+RWTexture2D<float> Pass1Texture;
 RWTexture2D<float> TempTexture;
 RWTexture2D<float4> OutputTexture;
 //LUT for color curve
@@ -83,38 +84,51 @@ int2 wrap(int x, int y){
 
 
 [numthreads(8, 8, 1)]
-void GaussianBlur(uint3 id : SV_DispatchThreadID) {
+void GaussianBlurHorizontal(uint3 id : SV_DispatchThreadID) {
     if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
 
-    // Kernel radius for Gaussian blur
     int kernelRadius = (int)(3.0 * _Smoothness);
-    float sigmaSq = _Smoothness * _Smoothness;
-
-    // Gaussian smoothing
-    float sum = 0.0;
-    float weightSum = 0.0;
-
-    //if smoothness is 0, then sample as grayscale
     if(kernelRadius == 0){
-        float4 sample = InputTexture[id.xy + _Offset];
-        TempTexture[id.xy + _Offset] = Luminance(sample);
+        Pass1Texture[id.xy + _Offset] = Luminance(InputTexture[id.xy + _Offset]);
         return;
     }
     
-    for (int x = -kernelRadius; x <= kernelRadius; x++) {
-        for (int y = -kernelRadius; y <= kernelRadius; y++) {
-            float weight = exp(-((x * x + y * y) / (2.0 * sigmaSq)));
+    float sigmaSq = _Smoothness * _Smoothness;
+    float sum = 0.0;
+    float weightSum = 0.0;
 
-            float4 sample = InputTexture[wrap(id.x + x, id.y + y) + _Offset];
-            sum += Luminance(sample) * weight;
-            weightSum += weight;
-        }
+    for (int x = -kernelRadius; x <= kernelRadius; x++) {
+        float weight = exp(-(x * x) / (2.0 * sigmaSq));
+        float4 sample = InputTexture[wrap(id.x + x, id.y) + _Offset];
+        sum += Luminance(sample) * weight;
+        weightSum += weight;
     }
 
-    float smoothedValue = sum / weightSum;
+    Pass1Texture[id.xy + _Offset] = sum / weightSum;
+}
 
-    // Store the smoothed value in the temporary texture
-    TempTexture[id.xy + _Offset] = smoothedValue;
+[numthreads(8, 8, 1)]
+void GaussianBlurVertical(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
+
+    int kernelRadius = (int)(3.0 * _Smoothness);
+    if(kernelRadius == 0){
+        TempTexture[id.xy + _Offset] = Pass1Texture[id.xy + _Offset];
+        return;
+    }
+    
+    float sigmaSq = _Smoothness * _Smoothness;
+    float sum = 0.0;
+    float weightSum = 0.0;
+
+    for (int y = -kernelRadius; y <= kernelRadius; y++) {
+        float weight = exp(-(y * y) / (2.0 * sigmaSq));
+        float sample = Pass1Texture[wrap(id.x, id.y + y) + _Offset];
+        sum += sample * weight;
+        weightSum += weight;
+    }
+
+    TempTexture[id.xy + _Offset] = sum / weightSum;
 }
 
 [numthreads(8, 8, 1)]

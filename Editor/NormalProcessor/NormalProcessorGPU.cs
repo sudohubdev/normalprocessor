@@ -12,6 +12,7 @@ namespace dev.sudohub.normalprocessor
         //pipeline textures
         public Texture2D InputTexture { get; private set; }
         public RenderTexture TempTexture { get; private set; }
+        public RenderTexture TempTexture2 { get; private set; }
         public RenderTexture OutputTexture { get; private set; }
 
         //curve LUT
@@ -66,6 +67,11 @@ namespace dev.sudohub.normalprocessor
             };
             TempTexture.Create();
 
+            TempTexture2 = new(InputTexture.width, InputTexture.height, 0, RenderTextureFormat.RFloat)
+            {
+                enableRandomWrite = true
+            };
+            TempTexture2.Create();
 
             OutputTexture = new(InputTexture.width, InputTexture.height, 0, RenderTextureFormat.ARGB32)
             {
@@ -107,7 +113,8 @@ namespace dev.sudohub.normalprocessor
 
         public void ComputeGauss(float smoothness)
         {
-            int gaussian = computeShader.FindKernel("GaussianBlur");
+            int gaussHor = computeShader.FindKernel("GaussianBlurHorizontal");
+            int gaussVer = computeShader.FindKernel("GaussianBlurVertical");
 
             // Set shader parameters
             int blockWidth = InputTexture.width / tileSize.x;
@@ -118,16 +125,19 @@ namespace dev.sudohub.normalprocessor
                                              blockHeight * (tileSize.y - 1 - tileOffset.y));
             computeShader.SetFloat("_Smoothness", smoothness);
 
-            // Execute the compute shader
             int threadGroupsX = Mathf.CeilToInt(blockWidth / 8.0f);
             int threadGroupsY = Mathf.CeilToInt(blockHeight / 8.0f);
 
-            computeShader.SetTexture(gaussian, "InputTexture", InputTexture);
-            computeShader.SetTexture(gaussian, "TempTexture", TempTexture);
-            computeShader.SetTexture(gaussian, "OutputTexture", OutputTexture);
-            computeShader.SetTexture(gaussian, "CurveLUTTexture", curveLUT);
-            computeShader.Dispatch(gaussian, threadGroupsX, threadGroupsY, 1);
-            //Debug.Log("Gaussian blur applied");
+            // Pass 1: Horizontal Blur
+            computeShader.SetTexture(gaussHor, "InputTexture", InputTexture);
+            computeShader.SetTexture(gaussHor, "Pass1Texture", TempTexture2);
+            computeShader.SetTexture(gaussHor, "CurveLUTTexture", curveLUT);
+            computeShader.Dispatch(gaussHor, threadGroupsX, threadGroupsY, 1);
+
+            // Pass 2: Vertical Blur
+            computeShader.SetTexture(gaussVer, "Pass1Texture", TempTexture2);
+            computeShader.SetTexture(gaussVer, "TempTexture", TempTexture);
+            computeShader.Dispatch(gaussVer, threadGroupsX, threadGroupsY, 1);
         }
 
         public void ComputeNormal(float intensity)
@@ -172,10 +182,21 @@ namespace dev.sudohub.normalprocessor
             if (TempTexture != null)
             {
                 TempTexture.Release();
+                UnityEngine.Object.DestroyImmediate(TempTexture);
+            }
+            if (TempTexture2 != null)
+            {
+                TempTexture2.Release();
+                UnityEngine.Object.DestroyImmediate(TempTexture2);
             }
             if (OutputTexture != null)
             {
                 OutputTexture.Release();
+                UnityEngine.Object.DestroyImmediate(OutputTexture);
+            }
+            if (curveLUT != null)
+            {
+                UnityEngine.Object.DestroyImmediate(curveLUT);
             }
         }
     }
