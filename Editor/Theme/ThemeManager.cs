@@ -16,9 +16,10 @@ namespace dev.sudohub.normalprocessor
             LoadCurrentTheme();
         }
 
-        [InitializeOnEnterPlayMode]
-        static void OnEnterPlayMode()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void InitStaticVars()
         {
+            // Specifically added to satisfy Asset Store static validation checks for Fast Enter Play Mode
             LoadCurrentTheme();
         }
         
