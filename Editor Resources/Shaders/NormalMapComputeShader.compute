@@ -79,8 +79,10 @@ float2 EdgeOperator(float c[3][3]){
 //this function enables toggleable tiling of the texture
 int2 wrap(int x, int y){
     #if DO_TILING
-        int wrappedX = (x +  _Width) % _Width; //repeat
-        int wrappedY = (y + _Height) % _Height;
+        // Cast to uint for the modulo operation to prevent "integer modulus may be much slower" warnings.
+        // We add _Width * 2 just to be extremely safe against very large negative kernel sampling on tiny textures.
+        int wrappedX = (int)(((uint)(x + _Width * 2)) % (uint)_Width);
+        int wrappedY = (int)(((uint)(y + _Height * 2)) % (uint)_Height);
         return int2(wrappedX, wrappedY);
     #else
         return int2(clamp(x, 0, _Width - 1), clamp(y, 0, _Height - 1)); //subtract 1 to get ranges like 0-255, 256-1023

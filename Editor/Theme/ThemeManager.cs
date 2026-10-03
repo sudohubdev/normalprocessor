@@ -15,6 +15,12 @@ namespace dev.sudohub.normalprocessor
         {
             LoadCurrentTheme();
         }
+
+        [InitializeOnEnterPlayMode]
+        static void OnEnterPlayMode()
+        {
+            LoadCurrentTheme();
+        }
         
         public static void LoadCurrentTheme()
         {
