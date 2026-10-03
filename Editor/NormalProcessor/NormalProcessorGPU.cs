@@ -50,12 +50,34 @@ namespace dev.sudohub.normalprocessor
             if (InputTexture == null || InputTexture.width != tex.width || InputTexture.height != tex.height)
             {
                 InputTexture = tex;
-                Dispose();
+                ReleaseRenderTextures();
                 GenTextures();
             }
             else
             {
                 InputTexture = tex;
+            }
+        }
+
+        private void ReleaseRenderTextures()
+        {
+            if (TempTexture != null)
+            {
+                TempTexture.Release();
+                UnityEngine.Object.DestroyImmediate(TempTexture);
+                TempTexture = null;
+            }
+            if (TempTexture2 != null)
+            {
+                TempTexture2.Release();
+                UnityEngine.Object.DestroyImmediate(TempTexture2);
+                TempTexture2 = null;
+            }
+            if (OutputTexture != null)
+            {
+                OutputTexture.Release();
+                UnityEngine.Object.DestroyImmediate(OutputTexture);
+                OutputTexture = null;
             }
         }
 
@@ -179,24 +201,11 @@ namespace dev.sudohub.normalprocessor
 
         public void Dispose()
         {
-            if (TempTexture != null)
-            {
-                TempTexture.Release();
-                UnityEngine.Object.DestroyImmediate(TempTexture);
-            }
-            if (TempTexture2 != null)
-            {
-                TempTexture2.Release();
-                UnityEngine.Object.DestroyImmediate(TempTexture2);
-            }
-            if (OutputTexture != null)
-            {
-                OutputTexture.Release();
-                UnityEngine.Object.DestroyImmediate(OutputTexture);
-            }
+            ReleaseRenderTextures();
             if (curveLUT != null)
             {
                 UnityEngine.Object.DestroyImmediate(curveLUT);
+                curveLUT = null;
             }
         }
     }

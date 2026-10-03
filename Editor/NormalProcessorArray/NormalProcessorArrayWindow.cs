@@ -57,7 +57,7 @@ namespace dev.sudohub.normalprocessor
         #region Left Panel (texture select + tile chooser)
         private void CreateLeftPanel(VisualElement container)
         {
-            var paramsContainer = new VisualElement();
+            var paramsContainer = new VisualElement() { style = { flexShrink = 0 } };
             container.style.minWidth = 300;
             paramsContainer.style.minHeight = 80;
 
@@ -65,7 +65,8 @@ namespace dev.sudohub.normalprocessor
             var textureField = new ObjectField("Input Texture")
             {
                 objectType = typeof(Texture2D),
-                value = state.InputTexture
+                value = state.InputTexture,
+                style = { flexShrink = 0 }
             };
             textureField.RegisterValueChangedCallback(evt =>
             {
@@ -101,7 +102,7 @@ namespace dev.sudohub.normalprocessor
             };
 
             // Grid controls
-            var gridControls = new VisualElement() { style = { flexDirection = FlexDirection.Row } };
+            var gridControls = new VisualElement() { style = { flexDirection = FlexDirection.Row, flexShrink = 0, minHeight = 24 } };
 
             var gridLayerMenu = new ToolbarMenu { text = "Layers", style = { marginRight = 5, minWidth = 60 } };
             gridLayerMenu.menu.AppendAction("Input", _ => gridState.TextureType = TextureType.Input);
@@ -139,17 +140,20 @@ namespace dev.sudohub.normalprocessor
             container.Add(new VisualElement() { style = { flexGrow = 1 } });
 
             //save button
-            var saveBtn = new Button(SaveNormalMap) { text = "Generate & Save Atlas", tooltip = "Process and save as PNG" };
+            var saveBtn = new Button(SaveNormalMap) { tooltip = "Process and save as PNG" };
             saveBtn.style.height = 36;
+            saveBtn.style.flexShrink = 0;
+            saveBtn.style.flexDirection = FlexDirection.Row;
+            saveBtn.style.justifyContent = Justify.Center;
+            saveBtn.style.alignItems = Align.Center;
             saveBtn.style.backgroundColor = new Color(0.13f, 0.59f, 0.95f, 1f); // Unity Blue Accent
             saveBtn.style.color = Color.white;
-            saveBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
-            saveBtn.style.fontSize = 14;
             saveBtn.style.borderTopLeftRadius = 4;
             saveBtn.style.borderTopRightRadius = 4;
             saveBtn.style.borderBottomLeftRadius = 4;
             saveBtn.style.borderBottomRightRadius = 4;
-            saveBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_SaveAs").image, style = { position = Position.Absolute, left = 10, top = 10, width = 16, height = 16 } });
+            saveBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_SaveAs").image, style = { width = 16, height = 16, marginRight = 8 } });
+            saveBtn.Add(new Label("Generate & Save Atlas") { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 14 } });
             container.Add(saveBtn);
 
             UpdateGrid();
@@ -305,7 +309,7 @@ namespace dev.sudohub.normalprocessor
         #region Right Panel (Options + Preview)
         private void CreateParamsPanel(VisualElement container)
         {
-            var paramsContainer = new VisualElement();
+            var paramsContainer = new VisualElement() { style = { flexShrink = 0 } };
             paramsContainer.style.minHeight = 140;
 
             // Params Header
@@ -419,7 +423,9 @@ namespace dev.sudohub.normalprocessor
                 style = {
                     flexDirection = FlexDirection.Row,
                     alignItems = Align.Center,
-                    marginBottom = 5
+                    marginBottom = 5,
+                    flexShrink = 0,
+                    minHeight = 24
                 }
             };
 

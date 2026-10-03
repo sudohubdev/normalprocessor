@@ -1,5 +1,6 @@
 #pragma kernel GaussianBlurHorizontal
 #pragma kernel GaussianBlurVertical
+#pragma kernel NormalKernel
 #pragma target cs_5_0 // or cs_5_0 for compute shaders
 #pragma multi_compile __ DO_TILING
 #pragma multi_compile __ USE_SCHARR

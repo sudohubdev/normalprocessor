@@ -79,7 +79,7 @@ namespace dev.sudohub.normalprocessor
         private void BuildLeftPanel(VisualElement container)
         {
             // Title Header with Icon
-            var headerContainer = new VisualElement() { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginBottom = 15 } };
+            var headerContainer = new VisualElement() { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center, marginBottom = 15, flexShrink = 0 } };
             var icon = new Image() { image = EditorGUIUtility.IconContent("d_PreTextureRGB").image, style = { width = 24, height = 24, marginRight = 5 } };
             var header = new Label("Normal Processor") { style = { fontSize = 18, unityFontStyleAndWeight = FontStyle.Bold } };
             headerContainer.Add(icon);
@@ -87,7 +87,7 @@ namespace dev.sudohub.normalprocessor
             container.Add(headerContainer);
 
             // Input Texture
-            var texField = new ObjectField("Input Texture") { objectType = typeof(Texture2D), value = inputTexture };
+            var texField = new ObjectField("Input Texture") { objectType = typeof(Texture2D), value = inputTexture, style = { flexShrink = 0 } };
             texField.RegisterValueChangedCallback(evt => {
                 inputTexture = (Texture2D)evt.newValue;
                 processor?.RebindTexture(inputTexture);
@@ -97,18 +97,20 @@ namespace dev.sudohub.normalprocessor
             container.Add(texField);
 
             // Presets Button
-            var presetBtn = new Button(ShowPresetMenu) { text = "Load Preset", style = { marginTop = 10, marginBottom = 15 } };
-            presetBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_Settings").image, style = { position = Position.Absolute, left = 5, top = 2, width = 16, height = 16 } });
+            var presetBtn = new Button(ShowPresetMenu) { style = { marginTop = 10, marginBottom = 15, height = 24, flexShrink = 0, flexDirection = FlexDirection.Row, justifyContent = Justify.Center, alignItems = Align.Center } };
+            presetBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_Settings").image, style = { width = 16, height = 16, marginRight = 6 } });
+            presetBtn.Add(new Label("Load Preset"));
             container.Add(presetBtn);
 
             // Help Box
             var helpBox = new HelpBox("Please assign a Texture2D first.", HelpBoxMessageType.Info);
             helpBox.style.display = inputTexture == null ? DisplayStyle.Flex : DisplayStyle.None;
+            helpBox.style.flexShrink = 0;
             texField.RegisterValueChangedCallback(evt => helpBox.style.display = evt.newValue == null ? DisplayStyle.Flex : DisplayStyle.None);
             container.Add(helpBox);
 
             // --- Adjustments Group ---
-            var adjustmentsGroup = new GroupBox("Adjustments") { style = { marginTop = 10, paddingBottom = 10, borderLeftWidth=1, borderRightWidth=1, borderTopWidth=1, borderBottomWidth=1, borderTopLeftRadius=4, borderTopRightRadius=4, borderBottomLeftRadius=4, borderBottomRightRadius=4 } };
+            var adjustmentsGroup = new GroupBox("Adjustments") { style = { marginTop = 10, paddingBottom = 10, flexShrink = 0, borderLeftWidth=1, borderRightWidth=1, borderTopWidth=1, borderBottomWidth=1, borderTopLeftRadius=4, borderTopRightRadius=4, borderBottomLeftRadius=4, borderBottomRightRadius=4 } };
             
             var curveField = new CurveField("Grayscale Curve") { value = currentPreset.bwCurve, tooltip = "Color correction curve to amplify details" };
             curveField.RegisterValueChangedCallback(evt => {
@@ -136,7 +138,7 @@ namespace dev.sudohub.normalprocessor
             container.Add(adjustmentsGroup);
 
             // --- Options Group ---
-            var optionsGroup = new GroupBox("Options") { style = { marginTop = 10, paddingBottom = 10, borderLeftWidth=1, borderRightWidth=1, borderTopWidth=1, borderBottomWidth=1, borderTopLeftRadius=4, borderTopRightRadius=4, borderBottomLeftRadius=4, borderBottomRightRadius=4 } };
+            var optionsGroup = new GroupBox("Options") { style = { marginTop = 10, paddingBottom = 10, flexShrink = 0, borderLeftWidth=1, borderRightWidth=1, borderTopWidth=1, borderBottomWidth=1, borderTopLeftRadius=4, borderTopRightRadius=4, borderBottomLeftRadius=4, borderBottomRightRadius=4 } };
 
             var tilingToggle = new Toggle("Seamless Tiling") { value = currentPreset.doTiling };
             tilingToggle.RegisterValueChangedCallback(evt => {
@@ -156,21 +158,24 @@ namespace dev.sudohub.normalprocessor
             container.Add(optionsGroup);
 
             // Flexible space
-            var spacer = new VisualElement() { style = { flexGrow = 1, minHeight = 20 } };
+            var spacer = new VisualElement() { style = { flexGrow = 1, minHeight = 20, flexShrink = 1 } };
             container.Add(spacer);
 
             // Save Button
-            var saveBtn = new Button(SaveTexture) { text = "Generate & Save Normal Map", tooltip = "Process and save as PNG" };
+            var saveBtn = new Button(SaveTexture) { tooltip = "Process and save as PNG" };
             saveBtn.style.height = 36;
+            saveBtn.style.flexShrink = 0;
+            saveBtn.style.flexDirection = FlexDirection.Row;
+            saveBtn.style.justifyContent = Justify.Center;
+            saveBtn.style.alignItems = Align.Center;
             saveBtn.style.backgroundColor = new Color(0.13f, 0.59f, 0.95f, 1f); // Unity Blue Accent
             saveBtn.style.color = Color.white;
-            saveBtn.style.unityFontStyleAndWeight = FontStyle.Bold;
-            saveBtn.style.fontSize = 14;
             saveBtn.style.borderTopLeftRadius = 4;
             saveBtn.style.borderTopRightRadius = 4;
             saveBtn.style.borderBottomLeftRadius = 4;
             saveBtn.style.borderBottomRightRadius = 4;
-            saveBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_SaveAs").image, style = { position = Position.Absolute, left = 10, top = 10, width = 16, height = 16 } });
+            saveBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_SaveAs").image, style = { width = 16, height = 16, marginRight = 8 } });
+            saveBtn.Add(new Label("Generate & Save Normal Map") { style = { unityFontStyleAndWeight = FontStyle.Bold, fontSize = 14 } });
             container.Add(saveBtn);
         }
 
@@ -178,23 +183,26 @@ namespace dev.sudohub.normalprocessor
         {
             // Toolbar
             var toolbar = new UnityEditor.UIElements.Toolbar();
-            var layerMenu = new UnityEditor.UIElements.ToolbarMenu { text = "Preview Layer: Normal" };
+            toolbar.style.flexShrink = 0;
+            toolbar.style.minHeight = 24;
+            var layerMenu = new UnityEditor.UIElements.ToolbarMenu { text = "Preview Layer: Normal", style = { flexShrink = 0 } };
             layerMenu.menu.AppendAction("Input", _ => { previewLayer = 0; layerMenu.text = "Preview Layer: Input"; UpdatePreview(); });
             layerMenu.menu.AppendAction("Gauss", _ => { previewLayer = 1; layerMenu.text = "Preview Layer: Gauss"; UpdatePreview(); });
             layerMenu.menu.AppendAction("Normal", _ => { previewLayer = 2; layerMenu.text = "Preview Layer: Normal"; UpdatePreview(); });
             toolbar.Add(layerMenu);
 
-            var spacer = new VisualElement() { style = { flexGrow = 1 } };
+            var spacer = new VisualElement() { style = { flexGrow = 1, flexShrink = 1 } };
             toolbar.Add(spacer);
 
-            var refreshBtn = new UnityEditor.UIElements.ToolbarButton(UpdatePreview) { text = "Refresh", tooltip = "Force Re-evaluate" };
-            refreshBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_Refresh").image, style = { position = Position.Absolute, left = 2, top = 2, width = 16, height = 16 } });
+            var refreshBtn = new UnityEditor.UIElements.ToolbarButton(UpdatePreview) { tooltip = "Force Re-evaluate", style = { flexShrink = 0, flexDirection = FlexDirection.Row, alignItems = Align.Center } };
+            refreshBtn.Add(new Image() { image = EditorGUIUtility.IconContent("d_Refresh").image, style = { width = 16, height = 16, marginRight = 4 } });
+            refreshBtn.Add(new Label("Refresh"));
             toolbar.Add(refreshBtn);
             
             container.Add(toolbar);
 
             // Image Preview area
-            previewImage = new Image() { style = { flexGrow = 1, marginTop = 10, marginBottom = 10, marginLeft = 10, marginRight = 10 } };
+            previewImage = new Image() { style = { flexGrow = 1, flexShrink = 1, marginTop = 10, marginBottom = 10, marginLeft = 10, marginRight = 10 } };
             previewImage.scaleMode = ScaleMode.ScaleToFit;
             container.Add(previewImage);
 
