@@ -1,5 +1,8 @@
 # Normal Map Creator
-![Screenshot 2025-01-12 190801](https://github.com/user-attachments/assets/75c65dc7-e319-4451-b1ab-5d2616f3698b)
+<img width="2103" height="1115" alt="image" src="https://github.com/user-attachments/assets/39024d08-f727-4676-b75a-78e68a674f3f" />
+<img width="1772" height="994" alt="image" src="https://github.com/user-attachments/assets/e6ae2d2d-e153-4a67-b855-33dd65278bb2" />
+<img width="3413" height="992" alt="screen_00000" src="https://github.com/user-attachments/assets/30831a9c-a216-4a60-b79e-d99543c3fab7" />
+
 
 A Unity Editor package for generating and processing normal maps from 2D textures, powered by GPU compute shaders. Works with both individual textures and full texture atlases.
 
