@@ -11,6 +11,8 @@ namespace dev.sudohub.normalprocessor
         public AnimationCurve bwCurve;
         public float smoothness;
         public float intensity;
+        public float detailIntensity;
+        public bool invertHeight;
         public bool doTiling;
         public bool useScharr;
         public string name;
@@ -18,6 +20,8 @@ namespace dev.sudohub.normalprocessor
             bwCurve = AnimationCurve.Linear(0, 0, 1, 1);
             smoothness = 2;
             intensity = 2;
+            detailIntensity = 0;
+            invertHeight = false;
             doTiling = false;
             useScharr = false;
             name = presetname;

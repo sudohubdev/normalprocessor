@@ -140,10 +140,25 @@ namespace dev.sudohub.normalprocessor
                 UpdatePreview();
             });
             adjustmentsGroup.Add(intensityField);
+            var detailIntensityField = new Slider("Fine Detail", 0, 10) { value = currentPreset.detailIntensity, showInputField = true, tooltip = "Blends high-frequency micro-details from the unblurred texture back into the normal map." };
+            detailIntensityField.RegisterValueChangedCallback(evt => {
+                currentPreset.detailIntensity = evt.newValue;
+                changes |= Changes.NormalChanged;
+                UpdatePreview();
+            });
+            adjustmentsGroup.Add(detailIntensityField);
             container.Add(adjustmentsGroup);
 
             // --- Options Group ---
-            var optionsGroup = new GroupBox("Options") { style = { marginTop = 10, paddingBottom = 10, flexShrink = 0, borderLeftWidth=1, borderRightWidth=1, borderTopWidth=1, borderBottomWidth=1, borderTopLeftRadius=4, borderTopRightRadius=4, borderBottomLeftRadius=4, borderBottomRightRadius=4 } };
+            var optionsGroup = new GroupBox("Options");
+
+            var invertToggle = new Toggle("Invert Height") { value = currentPreset.invertHeight, tooltip = "Inverts the perceived depth of the generated normal map (e.g. making bumps into dents)." };
+            invertToggle.RegisterValueChangedCallback(evt => {
+                currentPreset.invertHeight = evt.newValue;
+                changes |= Changes.NormalChanged;
+                UpdatePreview();
+            });
+            optionsGroup.Add(invertToggle);
 
             var tilingToggle = new Toggle("Seamless Tiling") { value = currentPreset.doTiling };
             tilingToggle.RegisterValueChangedCallback(evt => {
@@ -246,7 +261,7 @@ namespace dev.sudohub.normalprocessor
                 changes = Changes.Everything;
             }
             if(changes.HasFlag(Changes.NormalChanged)){
-                processor.ComputeNormal(currentPreset.intensity);
+                processor.ComputeNormal(currentPreset.intensity, currentPreset.detailIntensity, currentPreset.invertHeight);
             }
             
             changes = Changes.None;

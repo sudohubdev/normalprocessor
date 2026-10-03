@@ -394,14 +394,30 @@ namespace dev.sudohub.normalprocessor
                 state.Changes |= Changes.KeywordChanged;
             });
 
+            var detailIntensitySlider = new Slider("Fine Detail", 0, 10) { value = state.CurrentPreset.detailIntensity, showInputField = true, tooltip = "Blends high-frequency micro-details from the unblurred texture back into the normal map." };
+            detailIntensitySlider.RegisterValueChangedCallback(evt =>
+            {
+                state.CurrentPreset.detailIntensity = evt.newValue;
+                state.Changes |= Changes.NormalChanged;
+            });
+            
+            var invertToggle = new Toggle("Invert Height") { value = state.CurrentPreset.invertHeight, tooltip = "Inverts the perceived depth of the generated normal map (e.g. making bumps into dents)." };
+            invertToggle.RegisterValueChangedCallback(evt =>
+            {
+                state.CurrentPreset.invertHeight = evt.newValue;
+                state.Changes |= Changes.NormalChanged;
+            });
+
             //update controls on property changed
             state.PropertyChanged += (s, e) =>
             {
                 curveField.SetValueWithoutNotify(state.CurrentPreset.bwCurve);
                 smoothnessSlider.SetValueWithoutNotify(state.CurrentPreset.smoothness);
                 intensitySlider.SetValueWithoutNotify(state.CurrentPreset.intensity);
+                detailIntensitySlider.SetValueWithoutNotify(state.CurrentPreset.detailIntensity);
                 tilingToggle.SetValueWithoutNotify(state.CurrentPreset.doTiling);
                 scharrToggle.SetValueWithoutNotify(state.CurrentPreset.useScharr);
+                invertToggle.SetValueWithoutNotify(state.CurrentPreset.invertHeight);
                 //update display
                 state.Changes |= Changes.Everything;
             };
@@ -409,6 +425,8 @@ namespace dev.sudohub.normalprocessor
             paramsContainer.Add(curveField);
             paramsContainer.Add(smoothnessSlider);
             paramsContainer.Add(intensitySlider);
+            paramsContainer.Add(detailIntensitySlider);
+            paramsContainer.Add(invertToggle);
             paramsContainer.Add(tilingToggle);
             paramsContainer.Add(scharrToggle);
 
@@ -586,7 +604,7 @@ namespace dev.sudohub.normalprocessor
             }
             if (changes.HasFlag(Changes.NormalChanged))
             {
-                _processor.Value.ComputeNormal(state.CurrentPreset.intensity);
+                _processor.Value.ComputeNormal(state.CurrentPreset.intensity, state.CurrentPreset.detailIntensity, state.CurrentPreset.invertHeight);
             }
             //Up to date
             if (doResetFlag)

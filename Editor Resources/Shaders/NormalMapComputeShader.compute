@@ -27,6 +27,8 @@ int _Height;
 uint2 _Offset; //for block processing (atlas)
 float _Intensity;
 float _Smoothness;
+float _InvertHeight; // 1.0 or -1.0
+float _DetailIntensity;
 
 
 float LUT(float bw){
@@ -135,9 +137,9 @@ void GaussianBlurVertical(uint3 id : SV_DispatchThreadID) {
 [numthreads(8, 8, 1)]
 void NormalKernel(uint3 id : SV_DispatchThreadID) {
     if (id.x >= (uint)_Width || id.y >= (uint)_Height) return;
-    //_Offset.y -=1;
-    // operator kernels
+    
     float c[3][3];
+    float c_fine[3][3];
 
     [unroll]
     for (int i = 0; i < 3; i++) {
@@ -146,15 +148,27 @@ void NormalKernel(uint3 id : SV_DispatchThreadID) {
             int2 uv = id.xy + int2(j-1, i-1);
             uv = wrap(uv.x, uv.y) + _Offset;
             c[i][j] = TempTexture[uv];
+            if (_DetailIntensity > 0.001) {
+                c_fine[i][j] = Luminance(InputTexture[uv]);
+            }
         }
     }
+    
     //edge detection operator
     float2 edge = EdgeOperator(c) * _Intensity;
     
+    // add high-frequency detail if needed
+    if (_DetailIntensity > 0.001) {
+        edge += EdgeOperator(c_fine) * _DetailIntensity;
+    }
+    
+    // apply invert modifier (1.0 or -1.0)
+    edge *= _InvertHeight;
+    
     //edges to normal map, x is inverted
-    float3 normal = float3(edge,1);
+    float3 normal = float3(edge, 1.0);
     normal = normalize(normal);
-    normal.x *= -1;
+    normal.x *= -1.0;
     normal = (normal * 0.5) + 0.5;
-    OutputTexture[id.xy + _Offset] = float4(normal,1.0);
+    OutputTexture[id.xy + _Offset] = float4(normal, 1.0);
 }

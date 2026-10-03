@@ -162,7 +162,7 @@ namespace dev.sudohub.normalprocessor
             computeShader.Dispatch(gaussVer, threadGroupsX, threadGroupsY, 1);
         }
 
-        public void ComputeNormal(float intensity)
+        public void ComputeNormal(float intensity, float detailIntensity, bool invertHeight)
         {
             int sobel = computeShader.FindKernel("NormalKernel");
 
@@ -174,6 +174,8 @@ namespace dev.sudohub.normalprocessor
             computeShader.SetInts("_Offset", blockWidth * tileOffset.x,
                                              blockHeight * (tileSize.y - 1 - tileOffset.y));
             computeShader.SetFloat("_Intensity", intensity);
+            computeShader.SetFloat("_DetailIntensity", detailIntensity);
+            computeShader.SetFloat("_InvertHeight", invertHeight ? -1.0f : 1.0f);
 
             // Execute the compute shader
             int threadGroupsX = Mathf.CeilToInt(blockWidth / 8.0f);
